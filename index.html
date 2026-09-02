@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carena - Traçabilité Maintenance</title>
+    <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary-color: #003366;
+            --secondary-color: #0055a5;
+            --bg-color: #f4f6f9;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--secondary-color);
+            padding-bottom: 5px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        select, input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #003366;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            font-size: 14px;
+        }
+        th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Carena - Suivi Maintenance Ateliers & Cadres</h1>
+    </header>
+
+    <div class="container">
+        <h2>Enregistrer une Intervention</h2>
+        <form id="interventionForm">
+            <div class="form-group">
+                <label for="equipementSelect">Sélectionner l'Équipement (Lieu & Appareil) :</label>
+                <select id="equipementSelect" required>
+                    <option value="">-- Chargement des équipements... --</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="dateIntervention">Date :</label>
+                <input type="date" id="dateIntervention" required>
+            </div>
+
+            <div class="form-group" style="display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                    <label for="heureDebut">Heure Début :</label>
+                    <input type="time" id="heureDebut" required>
+                </div>
+                <div style="flex: 1;">
+                    <label for="heureFin">Heure Fin :</label>
+                    <input type="time" id="heureFin" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="panneResolue">Panne / Travail effectué :</label>
+                <textarea id="panneResolue" rows="3" placeholder="Ex: Nettoyage filtres + Détartrage / Remplacement compresseur..." required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="prestataire">Nom de la Société / Intervenant :</label>
+                <input type="text" id="prestataire" placeholder="Ex: ClimServ / Jean Kouassi" required>
+            </div>
+
+            <button type="submit">Enregistrer l'intervention</button>
+        </form>
+
+        <h2>Historique des Interventions (Temps Réel)</h2>
+        <table id="historiqueTable">
+            <thead>
+                <tr>
+                    <th>Lieu / Équipement</th>
+                    <th>Date</th>
+                    <th>Heures</th>
+                    <th>Travail / Panne</th>
+                    <th>Prestataire</th>
+                </tr>
+            </thead>
+            <tbody>
+                </tbody>
+        </table>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
