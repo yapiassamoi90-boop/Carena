@@ -1,9 +1,9 @@
 // ==========================================
 // CONFIGURATION SUPABASE
-// ==========================================
+// =======================================
 // Remplace ces valeurs par tes identifiants de projet Supabase
-const SUPABASE_URL = 'VOTRE_SUPABASE_URL';
-const SUPABASE_ANON_KEY = 'VOTRE_SUPABASE_ANON_KEY';
+const SUPABASE_URL = 'https://okudbyjsfaafuiezjihm.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_qOK5Be5WMFki88iVLnDhdw_NHxkkhrC';
 
 // Initialisation du client Supabase
 const { createClient } = supabase;
