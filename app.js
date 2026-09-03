@@ -9,7 +9,7 @@ const { createClient } = supabase;
 const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ==========================================
-// LISTE COMPLÈTE DES ÉQUIPEMENTS & ATELIERS (Carena)
+// LISTE COMPLÈTE DES ÉQUIPEMENTS & VILLAS (Carena)
 // ==========================================
 const equipementsList = [
     // --- Ateliers, Bâtiments & Bureaux (61xxx) ---
@@ -45,7 +45,7 @@ const equipementsList = [
     { code: "61535", nom: "61535 - Réseau eau & air" },
     { code: "61536", nom: "61536 - Réseau électrique & transformateurs" },
 
-    // --- Villas (62101 à 62120) - Toutes intégrées ---
+    // --- Villas (62101 à 62120) ---
     { code: "62101", nom: "62101 - Villa n° 01" },
     { code: "62102", nom: "62102 - Villa n° 02" },
     { code: "62103", nom: "62103 - Villa n° 03" },
@@ -126,90 +126,37 @@ const equipementsList = [
 // INITIALISATION DE L'APPLICATION
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    initialiserRechercheEquipements();
+    remplirSelectEquipements();
     chargerHistorique();
 
-    // Date du jour par défaut sur le formulaire
+    // Date du jour par défaut
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('dateIntervention').value = today;
 
-    // Écouteur pour la soumission du formulaire
+    // Écouteur de formulaire
     document.getElementById('interventionForm').addEventListener('submit', enregistrerIntervention);
 
-    // Écouteur pour la recherche en temps réel dans l'historique
+    // Écouteur de recherche dans l'historique
     document.getElementById('searchInput').addEventListener('input', filtrerHistorique);
 });
 
 // ==========================================
-// RECHERCHE INTELLIGENTE DES ÉQUIPEMENTS
+// REMPLIR LE MENU DÉROULANT CLASSIQUE
 // ==========================================
-function initialiserRechercheEquipements() {
-    const inputSearch = document.getElementById('equipementSearch');
-    const inputHidden = document.getElementById('equipementSelect');
-    const suggestionsDiv = document.getElementById('suggestionsList');
+function remplirSelectEquipements() {
+    const select = document.getElementById('equipementSelect');
+    if (!select) return;
 
-    if (!inputSearch || !suggestionsDiv) return;
-
+    // Tri alphabétique
     equipementsList.sort((a, b) => a.nom.localeCompare(b.nom));
 
-    function afficherSuggestions(liste) {
-        suggestionsDiv.innerHTML = '';
-        
-        if (liste.length === 0) {
-            suggestionsDiv.style.display = 'none';
-            return;
-        }
+    select.innerHTML = '<option value="">-- Sélectionnez un équipement ou atelier --</option>';
 
-        liste.forEach(eq => {
-            const div = document.createElement('div');
-            div.textContent = eq.nom;
-            div.style.padding = '12px 10px';
-            div.style.cursor = 'pointer';
-            div.style.borderBottom = '1px solid #eee';
-            div.style.fontSize = '0.95rem';
-            div.style.backgroundColor = '#ffffff';
-            div.style.color = '#333333';
-
-            div.addEventListener('mouseover', () => { div.style.backgroundColor = '#f0f4f8'; });
-            div.addEventListener('mouseout', () => { div.style.backgroundColor = '#ffffff'; });
-
-            div.addEventListener('mousedown', (e) => {
-                e.preventDefault(); 
-                inputSearch.value = eq.nom;
-                inputHidden.value = eq.nom;
-                suggestionsDiv.style.display = 'none';
-            });
-
-            suggestionsDiv.appendChild(div);
-        });
-
-        suggestionsDiv.style.display = 'block';
-    }
-
-    inputSearch.addEventListener('focus', () => {
-        afficherSuggestions(equipementsList);
-    });
-
-    inputSearch.addEventListener('input', (e) => {
-        const terme = e.target.value.toLowerCase().trim();
-        inputHidden.value = ''; 
-
-        if (terme === '') {
-            afficherSuggestions(equipementsList);
-            return;
-        }
-
-        const filtres = equipementsList.filter(eq => 
-            eq.nom.toLowerCase().includes(terme) || eq.code.includes(terme)
-        );
-
-        afficherSuggestions(filtres);
-    });
-
-    document.addEventListener('click', (e) => {
-        if (!inputSearch.contains(e.target) && !suggestionsDiv.contains(e.target)) {
-            suggestionsDiv.style.display = 'none';
-        }
+    equipementsList.forEach(eq => {
+        const option = document.createElement('option');
+        option.value = eq.nom;
+        option.textContent = eq.nom;
+        select.appendChild(option);
     });
 }
 
@@ -219,15 +166,15 @@ function initialiserRechercheEquipements() {
 async function enregistrerIntervention(e) {
     e.preventDefault();
 
-    const equipementVal = document.getElementById('equipementSelect').value || document.getElementById('equipementSearch').value;
+    const equipementVal = document.getElementById('equipementSelect').value;
     const dateVal = document.getElementById('dateIntervention').value;
     const heureDebutVal = document.getElementById('heureDebut').value;
     const heureFinVal = document.getElementById('heureFin').value;
     const panneVal = document.getElementById('panneResolue').value;
     const prestataireVal = document.getElementById('prestataire').value;
 
-    if (!equipementVal || !dateVal) {
-        alert('Veuillez sélectionner un équipement valide dans la liste déroulante de recherche.');
+    if (!equipementVal) {
+        alert('Veuillez sélectionner un équipement ou une villa dans la liste.');
         return;
     }
 
@@ -252,8 +199,6 @@ async function enregistrerIntervention(e) {
 
         alert('Intervention enregistrée avec succès !');
         document.getElementById('interventionForm').reset();
-        document.getElementById('equipementSearch').value = '';
-        document.getElementById('equipementSelect').value = '';
         document.getElementById('dateIntervention').value = new Date().toISOString().split('T')[0];
         chargerHistorique();
 
