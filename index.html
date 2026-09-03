@@ -33,9 +33,25 @@
         header {
             background-color: var(--primary-color);
             color: white;
-            padding: 1.2rem 1rem;
-            text-align: center;
+            padding: 1rem;
+            position: relative;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header-dev {
+            position: absolute;
+            top: 6px;
+            right: 10px;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            text-decoration: underline;
+            opacity: 0.75;
+            letter-spacing: 0.5px;
+        }
+
+        .header-content {
+            text-align: center;
+            margin-top: 5px;
         }
 
         header h1 {
@@ -162,8 +178,11 @@
 <body>
 
     <header>
-        <h1>Carena - Suivi Maintenance</h1>
-        <p>Ateliers, Chantiers & Cadres</p>
+        <div class="header-dev">ASSAMOI</div>
+        <div class="header-content">
+            <h1>Carena - Suivi Maintenance</h1>
+            <p>Ateliers, Chantiers & Cadres</p>
+        </div>
     </header>
 
     <div class="container">
@@ -219,10 +238,11 @@
                         <th>Heures</th>
                         <th>Travail / Panne</th>
                         <th>Prestataire</th>
+                        <th style="text-align: center;">Action</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr><td colspan="5" style="text-align:center; color:#777;">Chargement de l'historique...</td></tr>
+                    <tr><td colspan="6" style="text-align:center; color:#777;">Chargement de l'historique...</td></tr>
                 </tbody>
             </table>
         </div>
