@@ -12,7 +12,7 @@ const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // LISTE COMPLÈTE DES ÉQUIPEMENTS & ATELIERS (Carena)
 // ==========================================
 const equipementsList = [
-    // --- Ateliers & Bâtiments (61xxx / 62xxx) ---
+    // --- Ateliers, Bâtiments & Bureaux (61xxx) ---
     { code: "61001", nom: "61001 - Bureaux Direction Production" },
     { code: "61002", nom: "61002 - Bâtiments magasins et parc à tôles" },
     { code: "61003", nom: "61003 - Bâtiment Peinture Anticorrosion" },
@@ -44,6 +44,8 @@ const equipementsList = [
     { code: "61045", nom: "61045 - Hangar & matériel de sablage" },
     { code: "61535", nom: "61535 - Réseau eau & air" },
     { code: "61536", nom: "61536 - Réseau électrique & transformateurs" },
+
+    // --- Villas (62101 à 62120) ---
     { code: "62101", nom: "62101 - Villa n° 01" },
     { code: "62102", nom: "62102 - Villa n° 02" },
     { code: "62103", nom: "62103 - Villa n° 03" },
@@ -51,6 +53,13 @@ const equipementsList = [
     { code: "62106", nom: "62106 - Villa n° 06" },
     { code: "62107", nom: "62107 - Villa n° 07" },
     { code: "62108", nom: "62108 - Villa n° 08" },
+    { code: "62111", nom: "62111 - Villa n° 11" },
+    { code: "62112", nom: "62112 - Villa n° 12" },
+    { code: "62113", nom: "62113 - Villa n° 13" },
+    { code: "62116", nom: "62116 - Villa n° 16" },
+    { code: "62118", nom: "62118 - Villa n° 18" },
+    { code: "62119", nom: "62119 - Villa n° 19" },
+    { code: "62120", nom: "62120 - Villa n° 20" },
 
     // --- Machines & Équipements Industriels (63xxx) ---
     { code: "63001", nom: "63001 - Poste de soudure ARC" },
@@ -210,7 +219,7 @@ function initialiserRechercheEquipements() {
 async function enregistrerIntervention(e) {
     e.preventDefault();
 
-    const equipementVal = document.getElementById('equipementSelect').value;
+    const equipementVal = document.getElementById('equipementSelect').value || document.getElementById('equipementSearch').value;
     const dateVal = document.getElementById('dateIntervention').value;
     const heureDebutVal = document.getElementById('heureDebut').value;
     const heureFinVal = document.getElementById('heureFin').value;
@@ -223,7 +232,7 @@ async function enregistrerIntervention(e) {
     }
 
     const interventionData = {
-        equipement: equipementVal,
+        equipment: equipementVal, // Utilisation de la colonne exacte "equipment" dans Supabase
         date_intervention: dateVal,
         heure_debut: heureDebutVal || null,
         heure_fin: heureFinVal || null,
@@ -290,9 +299,11 @@ function afficherTableau(donnees) {
     tbody.innerHTML = '';
 
     donnees.forEach(item => {
+        // Gère la compatibilité si la colonne s'appelle equipment ou equipement dans la base
+        const nomEquipement = item.equipment || item.equipement || '';
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><strong>${item.equipement || ''}</strong></td>
+            <td><strong>${nomEquipement}</strong></td>
             <td>${item.date_intervention || ''}</td>
             <td>${item.heure_debut || '--:--'} - ${item.heure_fin || '--:--'}</td>
             <td>${item.panne_travail || ''}</td>
@@ -344,12 +355,13 @@ async function filtrerHistorique(e) {
 
         if (error) throw error;
 
-        const donneesFiltrees = data.filter(item => 
-            (item.equipement && item.equipement.toLowerCase().includes(termeRecherche)) ||
-            (item.panne_travail && item.panne_travail.toLowerCase().includes(termeRecherche)) ||
-            (item.prestataire && item.prestataire.toLowerCase().includes(termeRecherche)) ||
-            (item.date_intervention && item.date_intervention.includes(termeRecherche))
-        );
+        const donneesFiltrees = data.filter(item => {
+            const eq = item.equipment || item.equipement || '';
+            return eq.toLowerCase().includes(termeRecherche) ||
+                   (item.panne_travail && item.panne_travail.toLowerCase().includes(termeRecherche)) ||
+                   (item.prestataire && item.prestataire.toLowerCase().includes(termeRecherche)) ||
+                   (item.date_intervention && item.date_intervention.includes(termeRecherche));
+        });
 
         afficherTableau(donneesFiltrees);
 
