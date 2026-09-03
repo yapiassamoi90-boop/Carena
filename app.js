@@ -117,7 +117,7 @@ const equipementsList = [
 // INITIALISATION DE L'APPLICATION
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    chargerEquipementsSelect();
+    initialiserRechercheEquipements();
     chargerHistorique();
 
     // Date du jour par défaut sur le formulaire
@@ -132,19 +132,75 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================
-// CHARGEMENT DES ÉQUIPEMENTS DANS LE SELECT
+// RECHERCHE INTELLIGENTE DES ÉQUIPEMENTS
 // ==========================================
-function chargerEquipementsSelect() {
-    const select = document.getElementById('equipementSelect');
-    select.innerHTML = '<option value="">-- Sélectionnez un équipement ou atelier --</option>';
+function initialiserRechercheEquipements() {
+    const inputSearch = document.getElementById('equipementSearch');
+    const inputHidden = document.getElementById('equipementSelect');
+    const suggestionsDiv = document.getElementById('suggestionsList');
+
+    if (!inputSearch || !suggestionsDiv) return;
 
     equipementsList.sort((a, b) => a.nom.localeCompare(b.nom));
 
-    equipementsList.forEach(eq => {
-        const option = document.createElement('option');
-        option.value = eq.nom;
-        option.textContent = eq.nom;
-        select.appendChild(option);
+    function afficherSuggestions(liste) {
+        suggestionsDiv.innerHTML = '';
+        
+        if (liste.length === 0) {
+            suggestionsDiv.style.display = 'none';
+            return;
+        }
+
+        liste.forEach(eq => {
+            const div = document.createElement('div');
+            div.textContent = eq.nom;
+            div.style.padding = '12px 10px';
+            div.style.cursor = 'pointer';
+            div.style.borderBottom = '1px solid #eee';
+            div.style.fontSize = '0.95rem';
+            div.style.backgroundColor = '#ffffff';
+            div.style.color = '#333333';
+
+            div.addEventListener('mouseover', () => { div.style.backgroundColor = '#f0f4f8'; });
+            div.addEventListener('mouseout', () => { div.style.backgroundColor = '#ffffff'; });
+
+            div.addEventListener('mousedown', (e) => {
+                e.preventDefault(); 
+                inputSearch.value = eq.nom;
+                inputHidden.value = eq.nom;
+                suggestionsDiv.style.display = 'none';
+            });
+
+            suggestionsDiv.appendChild(div);
+        });
+
+        suggestionsDiv.style.display = 'block';
+    }
+
+    inputSearch.addEventListener('focus', () => {
+        afficherSuggestions(equipementsList);
+    });
+
+    inputSearch.addEventListener('input', (e) => {
+        const terme = e.target.value.toLowerCase().trim();
+        inputHidden.value = ''; 
+
+        if (terme === '') {
+            afficherSuggestions(equipementsList);
+            return;
+        }
+
+        const filtres = equipementsList.filter(eq => 
+            eq.nom.toLowerCase().includes(terme) || eq.code.includes(terme)
+        );
+
+        afficherSuggestions(filtres);
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!inputSearch.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+            suggestionsDiv.style.display = 'none';
+        }
     });
 }
 
@@ -162,7 +218,7 @@ async function enregistrerIntervention(e) {
     const prestataireVal = document.getElementById('prestataire').value;
 
     if (!equipementVal || !dateVal) {
-        alert('Veuillez remplir au moins l\'équipement et la date.');
+        alert('Veuillez sélectionner un équipement valide dans la liste déroulante de recherche.');
         return;
     }
 
@@ -176,7 +232,7 @@ async function enregistrerIntervention(e) {
     };
 
     try {
-        const { data, error } = await _supabase
+        const { error } = await _supabase
             .from('interventions_maintenance')
             .insert([interventionData]);
 
@@ -187,6 +243,8 @@ async function enregistrerIntervention(e) {
 
         alert('Intervention enregistrée avec succès !');
         document.getElementById('interventionForm').reset();
+        document.getElementById('equipementSearch').value = '';
+        document.getElementById('equipementSelect').value = '';
         document.getElementById('dateIntervention').value = new Date().toISOString().split('T')[0];
         chargerHistorique();
 
@@ -234,11 +292,11 @@ function afficherTableau(donnees) {
     donnees.forEach(item => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><strong>${item.equipement}</strong></td>
-            <td>${item.date_intervention}</td>
+            <td><strong>${item.equipement || ''}</strong></td>
+            <td>${item.date_intervention || ''}</td>
             <td>${item.heure_debut || '--:--'} - ${item.heure_fin || '--:--'}</td>
-            <td>${item.panne_travail}</td>
-            <td><em>${item.prestataire}</em></td>
+            <td>${item.panne_travail || ''}</td>
+            <td><em>${item.prestataire || ''}</em></td>
             <td style="text-align: center;">
                 <button onclick="supprimerIntervention(${item.id})" style="background-color: #dc2626; padding: 6px 10px; font-size: 0.85rem; width: auto;" title="Supprimer">🗑️</button>
             </td>
@@ -264,7 +322,7 @@ async function supprimerIntervention(id) {
         if (error) throw error;
 
         alert('Intervention supprimée avec succès !');
-        chargerHistorique(); // Recharger la liste
+        chargerHistorique();
 
     } catch (error) {
         console.error('Erreur lors de la suppression :', error);
