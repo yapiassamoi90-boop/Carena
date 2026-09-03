@@ -132,32 +132,20 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================
-// RECHERCHE INTELLIGENTE DES ÉQUIPEMENTS
+// RECHERCHE INTELLIGENTE DES ÉQUIPEMENTS (Corrigée)
 // ==========================================
 function initialiserRechercheEquipements() {
     const inputSearch = document.getElementById('equipementSearch');
     const inputHidden = document.getElementById('equipementSelect');
     const suggestionsDiv = document.getElementById('suggestionsList');
 
+    if (!inputSearch || !suggestionsDiv) return;
+
     equipementsList.sort((a, b) => a.nom.localeCompare(b.nom));
-
-    inputSearch.addEventListener('focus', () => {
-        afficherSuggestions(equipementsList);
-    });
-
-    inputSearch.addEventListener('input', (e) => {
-        const terme = e.target.value.toLowerCase();
-        inputHidden.value = ''; // Réinitialiser si l'utilisateur tape
-
-        const filtres = equipementsList.filter(eq => 
-            eq.nom.toLowerCase().includes(terme) || eq.code.includes(terme)
-        );
-
-        afficherSuggestions(filtres);
-    });
 
     function afficherSuggestions(liste) {
         suggestionsDiv.innerHTML = '';
+        
         if (liste.length === 0) {
             suggestionsDiv.style.display = 'none';
             return;
@@ -166,15 +154,18 @@ function initialiserRechercheEquipements() {
         liste.forEach(eq => {
             const div = document.createElement('div');
             div.textContent = eq.nom;
-            div.style.padding = '10px';
+            div.style.padding = '12px 10px';
             div.style.cursor = 'pointer';
-            div.style.borderBottom = '1px solid #f0f0f0';
-            div.style.fontSize = '0.9rem';
+            div.style.borderBottom = '1px solid #eee';
+            div.style.fontSize = '0.95rem';
+            div.style.backgroundColor = '#ffffff';
+            div.style.color = '#333333';
 
-            div.addEventListener('mouseover', () => { div.style.backgroundColor = '#f4f6f9'; });
-            div.addEventListener('mouseout', () => { div.style.backgroundColor = '#fff'; });
+            div.addEventListener('mouseover', () => { div.style.backgroundColor = '#f0f4f8'; });
+            div.addEventListener('mouseout', () => { div.style.backgroundColor = '#ffffff'; });
 
-            div.addEventListener('click', () => {
+            div.addEventListener('mousedown', (e) => {
+                e.preventDefault(); // Empêche la perte de focus trop tôt
                 inputSearch.value = eq.nom;
                 inputHidden.value = eq.nom;
                 suggestionsDiv.style.display = 'none';
@@ -186,6 +177,29 @@ function initialiserRechercheEquipements() {
         suggestionsDiv.style.display = 'block';
     }
 
+    // Afficher la liste complète au focus ou au clic
+    inputSearch.addEventListener('focus', () => {
+        afficherSuggestions(equipementsList);
+    });
+
+    // Filtrer dynamiquement pendant la frappe
+    inputSearch.addEventListener('input', (e) => {
+        const terme = e.target.value.toLowerCase().trim();
+        inputHidden.value = ''; // Réinitialiser si l'utilisateur modifie le texte
+
+        if (terme === '') {
+            afficherSuggestions(equipementsList);
+            return;
+        }
+
+        const filtres = equipementsList.filter(eq => 
+            eq.nom.toLowerCase().includes(terme) || eq.code.includes(terme)
+        );
+
+        afficherSuggestions(filtres);
+    });
+
+    // Cacher la liste si l'on clique en dehors
     document.addEventListener('click', (e) => {
         if (!inputSearch.contains(e.target) && !suggestionsDiv.contains(e.target)) {
             suggestionsDiv.style.display = 'none';
