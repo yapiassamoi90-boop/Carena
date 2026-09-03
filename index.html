@@ -4,12 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Carena - Traçabilité Maintenance</title>
-    <!-- PWA Manifest & Theme -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#003366">
     <link rel="apple-touch-icon" href="icon-192.png">
     
-    <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
@@ -83,7 +81,6 @@
 
         .form-group {
             margin-bottom: 15px;
-            position: relative; /* Nécessaire pour positionner le menu déroulant des suggestions */
         }
 
         label {
@@ -103,27 +100,10 @@
             background-color: #fff;
         }
 
-        input:focus, textarea:focus {
+        select:focus, input:focus, textarea:focus {
             outline: none;
             border-color: var(--secondary-color);
             box-shadow: 0 0 0 2px rgba(0,85,165,0.1);
-        }
-
-        /* Style de la liste des suggestions dynamiques */
-        #suggestionsList {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid var(--border-color);
-            border-top: none;
-            border-radius: 0 0 4px 4px;
-            background-color: #fff;
-            z-index: 1000;
-            display: none;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
         .time-row {
@@ -205,12 +185,11 @@
     <div class="container">
         <h2>Enregistrer une Intervention</h2>
         <form id="interventionForm">
-            <!-- Champ de recherche intelligent avec suggestions -->
             <div class="form-group">
-                <label for="equipementSearch">Rechercher / Sélectionner l'Équipement ou la Villa :</label>
-                <input type="text" id="equipementSearch" placeholder="Ex: Villa n° 20, 62120, Chaudronnerie..." autocomplete="off" required>
-                <input type="hidden" id="equipementSelect">
-                <div id="suggestionsList"></div>
+                <label for="equipementSelect">Sélectionner l'Équipement / Atelier / Villa :</label>
+                <select id="equipementSelect" required>
+                    <option value="">-- Sélectionnez un équipement ou atelier --</option>
+                </select>
             </div>
 
             <div class="form-group">
@@ -266,10 +245,8 @@
         </div>
     </div>
 
-    <!-- Script Application -->
     <script src="app.js"></script>
 
-    <!-- Enregistrement du Service Worker PWA -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
