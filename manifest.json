@@ -1,10 +1,11 @@
 {
-  "name": "Carena Trace Maintenance",
+  "name": "Carena - Suivi Maintenance",
   "short_name": "Carena Maintenance",
-  "start_url": "index.html",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#f4f6f9",
   "theme_color": "#003366",
+  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "icon-192.png",
