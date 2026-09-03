@@ -1,7 +1,6 @@
 // ==========================================
 // CONFIGURATION SUPABASE
-// =======================================
-// Remplace ces valeurs par tes identifiants de projet Supabase
+// ==========================================
 const SUPABASE_URL = 'https://okudbyjsfaafuiezjihm.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_qOK5Be5WMFki88iVLnDhdw_NHxkkhrC';
 
@@ -144,7 +143,7 @@ function chargerEquipementsSelect() {
 
     equipementsList.forEach(eq => {
         const option = document.createElement('option');
-        option.value = eq.nom; // On stocke le libellé complet
+        option.value = eq.nom;
         option.textContent = eq.nom;
         select.appendChild(option);
     });
@@ -156,21 +155,36 @@ function chargerEquipementsSelect() {
 async function enregistrerIntervention(e) {
     e.preventDefault();
 
+    const equipementVal = document.getElementById('equipementSelect').value;
+    const dateVal = document.getElementById('dateIntervention').value;
+    const heureDebutVal = document.getElementById('heureDebut').value;
+    const heureFinVal = document.getElementById('heureFin').value;
+    const panneVal = document.getElementById('panneResolue').value;
+    const prestataireVal = document.getElementById('prestataire').value;
+
+    if (!equipementVal || !dateVal) {
+        alert('Veuillez remplir au moins l\'équipement et la date.');
+        return;
+    }
+
     const interventionData = {
-        equipement: document.getElementById('equipementSelect').value,
-        date_intervention: document.getElementById('dateIntervention').value,
-        heure_debut: document.getElementById('heureDebut').value,
-        heure_fin: document.getElementById('heureFin').value,
-        panne_travail: document.getElementById('panneResolue').value,
-        prestataire: document.getElementById('prestataire').value
+        equipement: equipementVal,
+        date_intervention: dateVal,
+        heure_debut: heureDebutVal || null,
+        heure_fin: heureFinVal || null,
+        panne_travail: panneVal || '',
+        prestataire: prestataireVal || ''
     };
 
     try {
         const { data, error } = await _supabase
-            .from('interventions_maintenance') // Nom de ta table Supabase
+            .from('interventions_maintenance')
             .insert([interventionData]);
 
-        if (error) throw error;
+        if (error) {
+            console.error("Détail erreur Supabase:", error);
+            throw new Error(error.message);
+        }
 
         alert('Intervention enregistrée avec succès !');
         document.getElementById('interventionForm').reset();
@@ -182,8 +196,8 @@ async function enregistrerIntervention(e) {
         chargerHistorique();
 
     } catch (error) {
-        console.error('Erreur lors de l\'enregistrement :', error.message);
-        alert('Erreur lors de l\'enregistrement de l\'intervention. Vérifie ta connexion ou la console.');
+        console.error('Erreur lors de l\'enregistrement :', error);
+        alert('Erreur Supabase : ' + error.message);
     }
 }
 
@@ -227,7 +241,7 @@ function afficherTableau(donnees) {
         tr.innerHTML = `
             <td><strong>${item.equipement}</strong></td>
             <td>${item.date_intervention}</td>
-            <td>${item.heure_debut} - ${item.heure_fin}</td>
+            <td>${item.heure_debut || '--:--'} - ${item.heure_fin || '--:--'}</td>
             <td>${item.panne_travail}</td>
             <td><em>${item.prestataire}</em></td>
         `;
@@ -250,10 +264,10 @@ async function filtrerHistorique(e) {
         if (error) throw error;
 
         const donneesFiltrees = data.filter(item => 
-            item.equipement.toLowerCase().includes(termeRecherche) ||
-            item.panne_travail.toLowerCase().includes(termeRecherche) ||
-            item.prestataire.toLowerCase().includes(termeRecherche) ||
-            item.date_intervention.includes(termeRecherche)
+            (item.equipement && item.equipement.toLowerCase().includes(termeRecherche)) ||
+            (item.panne_travail && item.panne_travail.toLowerCase().includes(termeRecherche)) ||
+            (item.prestataire && item.prestataire.toLowerCase().includes(termeRecherche)) ||
+            (item.date_intervention && item.date_intervention.includes(termeRecherche))
         );
 
         afficherTableau(donneesFiltrees);
