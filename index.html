@@ -4,55 +4,100 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Carena - Traçabilité Maintenance</title>
+    <!-- PWA Manifest & Theme -->
     <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#003366">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         :root {
             --primary-color: #003366;
             --secondary-color: #0055a5;
             --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --border-color: #d1d5db;
         }
+
         body {
             font-family: Arial, sans-serif;
             background-color: var(--bg-color);
             margin: 0;
             padding: 0;
-            color: #333;
+            color: var(--text-color);
         }
+
         header {
             background-color: var(--primary-color);
             color: white;
-            padding: 1rem;
+            padding: 1.2rem 1rem;
             text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.4rem;
+        }
+
+        header p {
+            margin: 5px 0 0 0;
+            font-size: 0.85rem;
+            opacity: 0.85;
+        }
+
         .container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 20px auto;
-            background: white;
+            background: var(--card-bg);
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
+
         h2 {
             color: var(--primary-color);
             border-bottom: 2px solid var(--secondary-color);
             padding-bottom: 5px;
+            font-size: 1.2rem;
+            margin-top: 25px;
         }
+
         .form-group {
             margin-bottom: 15px;
         }
+
         label {
             display: block;
             margin-bottom: 5px;
             font-weight: bold;
+            font-size: 0.9rem;
         }
+
         select, input, textarea {
             width: 100%;
             padding: 10px;
-            border: 1px solid #ccc;
+            border: 1px solid var(--border-color);
             border-radius: 4px;
             box-sizing: border-box;
+            font-size: 1rem;
+            background-color: #fff;
         }
+
+        select:focus, input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 2px rgba(0,85,165,0.1);
+        }
+
+        .time-row {
+            display: flex;
+            gap: 10px;
+        }
+
         button {
             background-color: var(--secondary-color);
             color: white;
@@ -60,40 +105,72 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 1rem;
+            font-weight: bold;
             width: 100%;
+            transition: background-color 0.2s;
         }
+
         button:hover {
             background-color: #003366;
         }
+
+        .table-responsive {
+            overflow-x: auto;
+            margin-top: 15px;
+        }
+
         table {
             width: 100%;
-            margin-top: 20px;
             border-collapse: collapse;
+            min-width: 600px;
         }
+
         th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
+            border: 1px solid #e5e7eb;
+            padding: 10px;
             text-align: left;
-            font-size: 14px;
+            font-size: 0.9rem;
         }
+
         th {
             background-color: var(--primary-color);
             color: white;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+
+        .search-box {
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                margin: 10px;
+                padding: 12px;
+            }
+            .time-row {
+                flex-direction: column;
+                gap: 15px;
+            }
         }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>Carena - Suivi Maintenance Ateliers & Cadres</h1>
+        <h1>Carena - Suivi Maintenance</h1>
+        <p>Ateliers, Chantiers & Cadres</p>
     </header>
 
     <div class="container">
         <h2>Enregistrer une Intervention</h2>
         <form id="interventionForm">
             <div class="form-group">
-                <label for="equipementSelect">Sélectionner l'Équipement (Lieu & Appareil) :</label>
+                <label for="equipementSelect">Sélectionner l'Équipement / Chantier :</label>
                 <select id="equipementSelect" required>
                     <option value="">-- Chargement des équipements... --</option>
                 </select>
@@ -104,7 +181,7 @@
                 <input type="date" id="dateIntervention" required>
             </div>
 
-            <div class="form-group" style="display: flex; gap: 10px;">
+            <div class="form-group time-row">
                 <div style="flex: 1;">
                     <label for="heureDebut">Heure Début :</label>
                     <input type="time" id="heureDebut" required>
@@ -128,22 +205,41 @@
             <button type="submit">Enregistrer l'intervention</button>
         </form>
 
-        <h2>Historique des Interventions (Temps Réel)</h2>
-        <table id="historiqueTable">
-            <thead>
-                <tr>
-                    <th>Lieu / Équipement</th>
-                    <th>Date</th>
-                    <th>Heures</th>
-                    <th>Travail / Panne</th>
-                    <th>Prestataire</th>
-                </tr>
-            </thead>
-            <tbody>
+        <h2>Historique des Interventions</h2>
+        <div class="form-group search-box" style="margin-top: 15px;">
+            <input type="text" id="searchInput" placeholder="Rechercher dans l'historique (lieu, équipement, prestataire, panne)...">
+        </div>
+        
+        <div class="table-responsive">
+            <table id="historiqueTable">
+                <thead>
+                    <tr>
+                        <th>Code & Lieu / Équipement</th>
+                        <th>Date</th>
+                        <th>Heures</th>
+                        <th>Travail / Panne</th>
+                        <th>Prestataire</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="5" style="text-align:center; color:#777;">Chargement de l'historique...</td></tr>
                 </tbody>
-        </table>
+            </table>
+        </div>
     </div>
 
+    <!-- Script Application -->
     <script src="app.js"></script>
+
+    <!-- Enregistrement du Service Worker PWA -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker enregistré avec succès:', reg.scope))
+                    .catch(err => console.log('Échec de l\'enregistrement du Service Worker:', err));
+            });
+        }
+    </script>
 </body>
 </html>
