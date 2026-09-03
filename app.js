@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================
-// RECHERCHE INTELLIGENTE DES ÉQUIPEMENTS (Optimisée Mobile)
+// RECHERCHE INTELLIGENTE DES ÉQUIPEMENTS (Corrigée)
 // ==========================================
 function initialiserRechercheEquipements() {
     const inputSearch = document.getElementById('equipementSearch');
@@ -164,9 +164,8 @@ function initialiserRechercheEquipements() {
             div.addEventListener('mouseover', () => { div.style.backgroundColor = '#f0f4f8'; });
             div.addEventListener('mouseout', () => { div.style.backgroundColor = '#ffffff'; });
 
-            // Utilisation de 'touchstart' et 'click' pour une réactivité parfaite sur mobile tactile
-            div.addEventListener('pointerdown', (e) => {
-                e.preventDefault();
+            div.addEventListener('mousedown', (e) => {
+                e.preventDefault(); // Empêche la perte de focus trop tôt
                 inputSearch.value = eq.nom;
                 inputHidden.value = eq.nom;
                 suggestionsDiv.style.display = 'none';
@@ -178,12 +177,12 @@ function initialiserRechercheEquipements() {
         suggestionsDiv.style.display = 'block';
     }
 
-    // Afficher la liste complète au focus ou clic
+    // Afficher la liste complète au focus ou au clic
     inputSearch.addEventListener('focus', () => {
         afficherSuggestions(equipementsList);
     });
 
-    // Filtrer dynamiquement pendant la frappe (sur chaque touche pressée)
+    // Filtrer dynamiquement pendant la frappe
     inputSearch.addEventListener('input', (e) => {
         const terme = e.target.value.toLowerCase().trim();
         inputHidden.value = ''; // Réinitialiser si l'utilisateur modifie le texte
@@ -222,7 +221,7 @@ async function enregistrerIntervention(e) {
     const prestataireVal = document.getElementById('prestataire').value;
 
     if (!equipementVal || !dateVal) {
-        alert('Veuillez sélectionner un équipement valide dans la liste déroulante des suggestions.');
+        alert('Veuillez sélectionner un équipement valide dans la liste déroulante de recherche.');
         return;
     }
 
@@ -328,32 +327,6 @@ async function supprimerIntervention(id) {
     } catch (error) {
         console.error('Erreur lors de la suppression :', error);
         alert('Erreur lors de la suppression : ' + error.message);
-    }
-}
-
-// ==========================================
-// EFFACER TOUT L'HISTORIQUE DEPUIS SUPABASE
-// ==========================================
-async function effacerToutHistorique() {
-    if (!confirm('Attention : Voulez-vous vraiment effacer tout l\'historique des interventions ? Cette action est irréversible.')) {
-        return;
-    }
-
-    try {
-        // Supprime toutes les lignes où l'ID est supérieur à 0 (ce qui efface toute la table)
-        const { error } = await _supabase
-            .from('interventions_maintenance')
-            .delete()
-            .neq('id', 0);
-
-        if (error) throw error;
-
-        alert('L\'historique a été entièrement effacé avec succès !');
-        chargerHistorique();
-
-    } catch (error) {
-        console.error('Erreur lors de l\'effacement global :', error);
-        alert('Erreur : ' + error.message);
     }
 }
 
