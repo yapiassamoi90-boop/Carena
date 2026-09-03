@@ -45,7 +45,7 @@ const equipementsList = [
     { code: "61535", nom: "61535 - Réseau eau & air" },
     { code: "61536", nom: "61536 - Réseau électrique & transformateurs" },
 
-    // --- Villas (62101 à 62120) ---
+    // --- Villas (62101 à 62120) - Toutes intégrées ---
     { code: "62101", nom: "62101 - Villa n° 01" },
     { code: "62102", nom: "62102 - Villa n° 02" },
     { code: "62103", nom: "62103 - Villa n° 03" },
@@ -232,7 +232,7 @@ async function enregistrerIntervention(e) {
     }
 
     const interventionData = {
-        equipment: equipementVal, // Utilisation de la colonne exacte "equipment" dans Supabase
+        equipment: equipementVal,
         date_intervention: dateVal,
         heure_debut: heureDebutVal || null,
         heure_fin: heureFinVal || null,
@@ -299,7 +299,6 @@ function afficherTableau(donnees) {
     tbody.innerHTML = '';
 
     donnees.forEach(item => {
-        // Gère la compatibilité si la colonne s'appelle equipment ou equipement dans la base
         const nomEquipement = item.equipment || item.equipement || '';
         const tr = document.createElement('tr');
         tr.innerHTML = `
