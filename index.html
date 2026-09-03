@@ -71,6 +71,7 @@
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            overflow: visible !important;
         }
 
         h2 {
@@ -177,7 +178,7 @@
 <body>
 
     <header>
-        <div class="header-dev">Dev.ASSAMOI</div>
+        <div class="header-dev">dev.assamoi</div>
         <div class="header-content">
             <h1>Carena - Suivi Maintenance</h1>
             <p>Ateliers, Chantiers & Cadres</p>
@@ -187,11 +188,11 @@
     <div class="container">
         <h2>Enregistrer une Intervention</h2>
         <form id="interventionForm">
-            <!-- Champ de recherche intelligent pour les équipements -->
-            <div class="form-group" style="position: relative;">
+            <!-- Champ de recherche intelligent pour les équipements corrigé -->
+            <div class="form-group" style="position: relative; overflow: visible !important;">
                 <label for="equipementSearch">Rechercher / Sélectionner l'Équipement :</label>
                 <input type="text" id="equipementSearch" placeholder="Tapez un code (ex: 61001) ou un nom..." autocomplete="off">
-                <div id="suggestionsList" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid var(--border-color); max-height: 200px; overflow-y: auto; z-index: 1000; border-radius: 0 0 4px 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></div>
+                <div id="suggestionsList" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: #ffffff; border: 2px solid var(--secondary-color); max-height: 220px; overflow-y: auto; z-index: 99999; border-radius: 0 0 6px 6px; box-shadow: 0 8px 16px rgba(0,0,0,0.2);"></div>
                 <input type="hidden" id="equipementSelect" required>
             </div>
 
