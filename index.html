@@ -40,12 +40,12 @@
 
         .header-dev {
             position: absolute;
-            top: 4px;
-            right: 8px;
-            font-size: 0.5rem;
-            text-decoration: underline;
-            opacity: 0.4;
+            top: 6px;
+            right: 10px;
+            font-size: 0.75rem;
             font-family: monospace;
+            color: #ffffff;
+            opacity: 0.85;
         }
 
         .header-content {
@@ -163,6 +163,37 @@
             margin-bottom: 15px;
         }
 
+        .section-header-flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--secondary-color);
+            padding-bottom: 5px;
+            margin-top: 25px;
+        }
+
+        .section-header-flex h2 {
+            border-bottom: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .btn-danger-light {
+            background-color: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            width: auto;
+        }
+        .btn-danger-light:hover {
+            background-color: #f87171;
+            color: white;
+        }
+
         @media (max-width: 600px) {
             .container {
                 margin: 10px;
@@ -178,7 +209,7 @@
 <body>
 
     <header>
-        <div class="header-dev">dev.assamoi</div>
+        <div class="header-dev"><u>Dev.Assamoi</u></div>
         <div class="header-content">
             <h1>Carena - Suivi Maintenance</h1>
             <p>Ateliers, Chantiers & Cadres</p>
@@ -188,7 +219,7 @@
     <div class="container">
         <h2>Enregistrer une Intervention</h2>
         <form id="interventionForm">
-            <!-- Champ de recherche intelligent pour les équipements corrigé -->
+            <!-- Champ de recherche intelligent corrigé -->
             <div class="form-group" style="position: relative; overflow: visible !important;">
                 <label for="equipementSearch">Rechercher / Sélectionner l'Équipement :</label>
                 <input type="text" id="equipementSearch" placeholder="Tapez un code (ex: 61001) ou un nom..." autocomplete="off">
@@ -225,7 +256,11 @@
             <button type="submit">Enregistrer l'intervention</button>
         </form>
 
-        <h2>Historique des Interventions</h2>
+        <div class="section-header-flex">
+            <h2>Historique des Interventions</h2>
+            <button type="button" class="btn-danger-light" onclick="effacerToutHistorique()">🗑️ Effacer l'historique</button>
+        </div>
+
         <div class="form-group search-box" style="margin-top: 15px;">
             <input type="text" id="searchInput" placeholder="Rechercher dans l'historique (lieu, équipement, prestataire, panne)...">
         </div>
