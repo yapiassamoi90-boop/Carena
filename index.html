@@ -3,27 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Suivi des Interventions - Carena</title>
+    <title>Gestion des Interventions - Carena</title>
+    <!-- Script Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             background-color: #f4f6f9;
             margin: 0;
-            padding: 20px;
+            padding: 15px;
             color: #333;
         }
         .container {
-            max-width: 900px;
+            max-width: 800px;
             margin: 0 auto;
-            background: #fff;
+            background: #ffffff;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         h2, h3 {
             color: #1e3a8a;
-            border-bottom: 2px solid #e5e7eb;
-            padding-bottom: 8px;
         }
         .form-group {
             margin-bottom: 15px;
@@ -32,131 +32,145 @@
             display: block;
             font-weight: bold;
             margin-bottom: 5px;
+            font-size: 0.9rem;
         }
-        input, select, textarea {
+        select, input, textarea {
             width: 100%;
             padding: 10px;
-            border: 1px solid #ccc;
+            border: 1px solid #cbd5e1;
             border-radius: 6px;
-            box-sizing: border-box;
             font-size: 1rem;
+            box-sizing: border-box;
         }
-        button {
-            background-color: #2563eb;
+        button[type="submit"] {
+            background-color: #1d4ed8;
             color: white;
             border: none;
-            padding: 12px 20px;
+            padding: 12px;
+            width: 100%;
+            border-radius: 6px;
             font-size: 1rem;
             font-weight: bold;
-            border-radius: 6px;
             cursor: pointer;
-            width: 100%;
-            transition: background 0.3s;
         }
-        button:hover {
-            background-color: #1d4ed8;
+        button[type="submit"]:hover {
+            background-color: #1e40af;
         }
-        .search-box {
-            margin: 20px 0;
+        #notification {
+            display: none;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+            font-weight: bold;
+            text-align: center;
         }
         .table-responsive {
             overflow-x: auto;
+            margin-top: 15px;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
-        }
-        th, td {
-            border: 1px solid #e5e7eb;
-            padding: 10px;
-            text-align: left;
             font-size: 0.9rem;
         }
+        th, td {
+            border: 1px solid #e2e8f0;
+            padding: 10px;
+            text-align: left;
+        }
         th {
+            background-color: #1e3a8a;
+            color: white;
+        }
+        tr:nth-child(even) {
             background-color: #f8fafc;
-            color: #1e3a8a;
         }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
-    <div class="container">
-        <h2>🛠️ Gestion des Interventions - Carena</h2>
+<div class="container">
+    <h2>Enregistrement d'Intervention</h2>
+    
+    <!-- Zone de notification -->
+    <div id="notification"></div>
 
-        <form id="interventionForm">
-            <div class="form-group">
-                <label for="equipementSelect">Équipement / Villa :</label>
-                <select id="equipementSelect" required>
-                    <option value="">Chargement de la liste...</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="dateIntervention">Date de l'intervention :</label>
-                <input type="date" id="dateIntervention" required>
-            </div>
-
-            <div style="display: flex; gap: 10px;">
-                <div class="form-group" style="flex: 1;">
-                    <label for="heureDebut">Heure début :</label>
-                    <input type="time" id="heureDebut">
-                </div>
-                <div class="form-group" style="flex: 1;">
-                    <label for="heureFin">Heure fin :</label>
-                    <input type="time" id="heureFin">
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="panneResolue">Panne / Travail effectué :</label>
-                <textarea id="panneResolue" rows="3" placeholder="Décrivez la panne ou les travaux réalisés..."></textarea>
-            </div>
-
-            <div class="form-group">
-                <label for="photoInput">Photo / Justificatif :</label>
-                <input type="file" id="photoInput" accept="image/*" capture="environment">
-            </div>
-
-            <div class="form-group">
-                <label for="prestataire">Prestataire / Intervenant :</label>
-                <input type="text" id="prestataire" placeholder="Nom du technicien ou de l'entreprise...">
-            </div>
-
-            <button type="submit">Enregistrer l'intervention</button>
-        </form>
-
-        <hr style="margin: 30px 0;">
-
-        <h3>📋 Historique des interventions</h3>
-        
-        <div class="search-box">
-            <input type="text" id="searchInput" placeholder="🔍 Rechercher par code, villa, équipement, panne ou prestataire...">
+    <form id="interventionForm">
+        <div class="form-group">
+            <label for="equipementSelect">Équipement / Villa :</label>
+            <select id="equipementSelect" required>
+                <option value="">Chargement des équipements...</option>
+            </select>
         </div>
 
-        <div class="table-responsive">
-            <table id="historiqueTable">
-                <thead>
-                    <tr>
-                        <th>Équipement / Villa</th>
-                        <th>Date</th>
-                        <th>Horaires</th>
-                        <th>Travail / Panne</th>
-                        <th>Prestataire</th>
-                        <th>Photo</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td colspan="7" style="text-align: center; color: #777;">Chargement...</td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="form-group">
+            <label for="dateIntervention">Date de l'intervention :</label>
+            <input type="date" id="dateIntervention" required>
         </div>
+
+        <div style="display: flex; gap: 10px;">
+            <div class="form-group" style="flex: 1;">
+                <label for="heureDebut">Heure de début :</label>
+                <input type="time" id="heureDebut">
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label for="heureFin">Heure de fin :</label>
+                <input type="time" id="heureFin">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="panneResolue">Travail / Panne :</label>
+            <textarea id="panneResolue" rows="3" placeholder="Décrivez le travail ou la panne..."></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="prestataire">Nom de la Société / Intervenant :</label>
+            <input type="text" id="prestataire" placeholder="Ex: ClimServ / Jean Kouassi">
+        </div>
+
+        <div class="form-group">
+            <label for="photoInput">Photo / Justificatif :</label>
+            <input type="file" id="photoInput" accept="image/*" capture="environment">
+            <!-- Aperçu dynamique de la photo avant l'envoi -->
+            <div id="aperçuContainer" style="margin-top: 8px; display: none;">
+                <img id="imageApercu" src="" alt="Aperçu" style="max-width: 100px; max-height: 100px; border-radius: 6px; border: 1px solid #ccc; object-fit: cover;">
+            </div>
+        </div>
+
+        <button type="submit">Enregistrer l'intervention</button>
+    </form>
+
+    <hr style="margin: 30px 0; border: 0; border-top: 1px solid #cbd5e1;">
+
+    <h3>Historique des Interventions</h3>
+    <div class="form-group">
+        <input type="text" id="searchInput" placeholder="Rechercher dans l'historique (lieu, équipement, panne... )">
     </div>
 
-    <script src="app.js"></script>
+    <div class="table-responsive">
+        <table id="historiqueTable">
+            <thead>
+                <tr>
+                    <th>Équipement</th>
+                    <th>Date</th>
+                    <th>Heures</th>
+                    <th>Travail / Panne</th>
+                    <th>Prestataire</th>
+                    <th style="text-align: center;">Photo</th>
+                    <th style="text-align: center;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="7" style="text-align:center; color:#777;">Chargement de l'historique...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Ton fichier JavaScript -->
+<script src="app.js"></script>
 </body>
 </html>
