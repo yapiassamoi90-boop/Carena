@@ -155,6 +155,28 @@ document.addEventListener('DOMContentLoaded', () => {
     if (searchInput) {
         searchInput.addEventListener('input', filtrerHistoriqueLocal);
     }
+
+    // Gestion de l'aperçu dynamique de la photo
+    const photoInput = document.getElementById('photoInput');
+    if (photoInput) {
+        photoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const aperçuContainer = document.getElementById('aperçuContainer');
+            const imageApercu = document.getElementById('imageApercu');
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    imageApercu.src = event.target.result;
+                    if (aperçuContainer) aperçuContainer.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                if (imageApercu) imageApercu.src = '';
+                if (aperçuContainer) aperçuContainer.style.display = 'none';
+            }
+        });
+    }
 });
 
 // Fonction pour afficher une notification visuelle in-app
@@ -251,6 +273,11 @@ async function enregistrerIntervention(e) {
         document.getElementById('interventionForm').reset();
         document.getElementById('dateIntervention').value = new Date().toISOString().split('T')[0];
         if (photoInput) photoInput.value = '';
+        
+        // Cacher l'aperçu de l'image après réinitialisation
+        const aperçuContainer = document.getElementById('aperçuContainer');
+        if (aperçuContainer) aperçuContainer.style.display = 'none';
+
         chargerHistorique();
 
     } catch (error) {
