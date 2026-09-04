@@ -324,9 +324,12 @@ function afficherTableau(donnees) {
     donnees.forEach(item => {
         const nomEquipement = item.equipment || item.equipement || '';
         
-        let photoHtml = 'Aucune';
-        if (item.photo_url) {
-            photoHtml = `<a href="${item.photo_url}" target="_blank"><img src="${item.photo_url}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;" title="Voir la photo"></a>`;
+        // Gestion propre de l'affichage de la photo (Miniature cliquable ou mention "Aucune")
+        let photoHtml = '<span style="color: #888; font-size: 0.85rem;">Aucune</span>';
+        if (item.photo_url && item.photo_url.startsWith('data:image')) {
+            photoHtml = `<a href="${item.photo_url}" target="_blank"><img src="${item.photo_url}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid #ccc;" title="Cliquer pour agrandir"></a>`;
+        } else if (item.photo_url) {
+            photoHtml = `<a href="${item.photo_url}" target="_blank" style="font-size: 0.85rem;">📷 Voir</a>`;
         }
 
         const tr = document.createElement('tr');
