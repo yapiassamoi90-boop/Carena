@@ -4,17 +4,24 @@
 const SUPABASE_URL = 'https://okudbyjsfaafuiezjihm.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_qOK5Be5WMFki88iVLnDhdw_NHxkkhrC';
 
-const { createClient } = supabase;
-const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let _supabase = null;
+try {
+    if (typeof supabase !== 'undefined') {
+        const { createClient } = supabase;
+        _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    } else {
+        console.error("❌ La bibliothèque Supabase n'est pas chargée dans le HTML !");
+    }
+} catch (err) {
+    console.error("❌ Erreur d'initialisation Supabase :", err);
+}
 
-// Variable globale pour stocker l'historique et filtrer instantanément
 let historiqueGlobal = [];
 
 // ==========================================
 // LISTE COMPLÈTE DES ÉQUIPEMENTS & VILLAS (Carena)
 // ==========================================
 const equipementsList = [
-    // --- Ateliers, Bâtiments & Bureaux (61xxx) ---
     { code: "61001", nom: "61001 - Bureaux Direction Production" },
     { code: "61002", nom: "61002 - Bâtiments magasins et parc à tôles" },
     { code: "61003", nom: "61003 - Bâtiment Peinture Anticorrosion" },
@@ -46,8 +53,6 @@ const equipementsList = [
     { code: "61045", nom: "61045 - Hangar & matériel de sablage" },
     { code: "61535", nom: "61535 - Réseau eau & air" },
     { code: "61536", nom: "61536 - Réseau électrique & transformateurs" },
-
-    // --- Villas (62101 à 62120) ---
     { code: "62101", nom: "62101 - Villa n° 01" },
     { code: "62102", nom: "62102 - Villa n° 02" },
     { code: "62103", nom: "62103 - Villa n° 03" },
@@ -68,8 +73,6 @@ const equipementsList = [
     { code: "62118", nom: "62118 - Villa n° 18" },
     { code: "62119", nom: "62119 - Villa n° 19" },
     { code: "62120", nom: "62120 - Villa n° 20" },
-
-    // --- Machines & Équipements Industriels (63xxx) ---
     { code: "63001", nom: "63001 - Poste de soudure ARC" },
     { code: "63011", nom: "63011 - Groupe motopompe" },
     { code: "63012", nom: "63012 - Ventilateur extracteur d'air" },
@@ -85,16 +88,12 @@ const equipementsList = [
     { code: "63225", nom: "63225 - Pompe de détartrage KAMCO C210" },
     { code: "63536", nom: "63536 - Tour Sculfort Maxicap 129130" },
     { code: "63546", nom: "63546 - Pont roulant tour 8 (YALE- 5 Tonnes)" },
-
-    // --- Véhicules, Grues & Engins (65xxx / 77xxx) ---
     { code: "65365", nom: "65365 - RENAULT LOGAN 1.2L 7586 HA 01" },
     { code: "65366", nom: "65366 - Mitsubishi L200 184 HK 01 - Manutention" },
     { code: "65501", nom: "65501 - Grue à tour BPR n° 5 type GT 229 B" },
     { code: "65513", nom: "65513 - NACELLE ARTICULEE HAULOTTE N°1" },
     { code: "65523", nom: "65523 - CHARIOT ELEVATEUR 5 TONNES H5.OFT" },
     { code: "77060", nom: "77060 - ENTRETIEN TRANSFORMATEURS & REMPLACEMENT CELLULES" },
-
-    // --- Consommables Véhicules, Nacelles & Engins Maritimes (85xxx - 87xxx) ---
     { code: "85367", nom: "85367 - Conso. MITSUBISHI L200 936 HL 01 - ADMINISTRATION" },
     { code: "85368", nom: "85368 - Conso. RENAULT DUSTER 3388WW01 - Yann PERRET" },
     { code: "85369", nom: "85369 - Conso. RENAULT DOKKER VAN 1.5L - 8841WW01 (Supply Chain)" },
@@ -134,19 +133,22 @@ document.addEventListener('DOMContentLoaded', () => {
     remplirSelectEquipements();
     chargerHistorique();
 
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('dateIntervention').value = today;
+    const dateField = document.getElementById('dateIntervention');
+    if (dateField) {
+        dateField.value = new Date().toISOString().split('T')[0];
+    }
 
-    document.getElementById('interventionForm').addEventListener('submit', enregistrerIntervention);
+    const form = document.getElementById('interventionForm');
+    if (form) {
+        form.addEventListener('submit', enregistrerIntervention);
+    }
     
-    // Recherche instantanée
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.addEventListener('input', filtrerHistoriqueLocal);
     }
 });
 
-// Fonction pour afficher une notification visuelle in-app
 function afficherNotification(message, type = 'succes') {
     const notif = document.getElementById('notification');
     if (!notif) return;
@@ -164,7 +166,6 @@ function afficherNotification(message, type = 'succes') {
         notif.style.border = '1px solid #f5c2c7';
     }
 
-    // Fait disparaître la notification automatiquement après 5 secondes
     setTimeout(() => {
         notif.style.display = 'none';
     }, 5000);
@@ -187,6 +188,10 @@ function remplirSelectEquipements() {
 
 async function enregistrerIntervention(e) {
     e.preventDefault();
+    if (!_supabase) {
+        afficherNotification("Erreur : Base de données non connectée.", "erreur");
+        return;
+    }
 
     const equipementVal = document.getElementById('equipementSelect').value;
     const dateVal = document.getElementById('dateIntervention').value;
@@ -205,7 +210,6 @@ async function enregistrerIntervention(e) {
     if (photoInput && photoInput.files && photoInput.files[0]) {
         const file = photoInput.files[0];
         try {
-            // Compression automatique de l'image (max 800px de large, qualité 70%)
             photoUrlVal = await compresserImageEnBase64(file, 800, 0.7);
         } catch (err) {
             console.warn('Compression échouée, utilisation directe :', err);
@@ -230,7 +234,6 @@ async function enregistrerIntervention(e) {
 
         if (error) throw new Error(error.message);
 
-        // Notification de succès in-app
         afficherNotification('✅ Intervention enregistrée avec succès !');
         
         document.getElementById('interventionForm').reset();
@@ -244,7 +247,6 @@ async function enregistrerIntervention(e) {
     }
 }
 
-// Fonction de compression d'image pour optimiser la taille du Base64
 function compresserImageEnBase64(file, maxWidth = 800, quality = 0.7) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -292,6 +294,11 @@ async function chargerHistorique() {
 
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#777;">Chargement de l\'historique...</td></tr>';
 
+    if (!_supabase) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:red;">Erreur : Connexion Supabase absente.</td></tr>';
+        return;
+    }
+
     try {
         const { data, error } = await _supabase
             .from('interventions_maintenance')
@@ -311,7 +318,7 @@ async function chargerHistorique() {
 
     } catch (error) {
         console.error('Erreur chargement historique :', error.message);
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:red;">Erreur de chargement des données.</td></tr>';
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:red;">Erreur : ${error.message}</td></tr>`;
     }
 }
 
@@ -324,7 +331,6 @@ function afficherTableau(donnees) {
     donnees.forEach(item => {
         const nomEquipement = item.equipment || item.equipement || '';
         
-        // Rétablissement de l'affichage de la photo (miniature propre ou lien texte sans conflit)
         let photoHtml = '<span style="color: #888; font-size: 0.85rem;">Aucune</span>';
         if (item.photo_url && item.photo_url.startsWith('data:image')) {
             photoHtml = `<a href="${item.photo_url}" target="_blank"><img src="${item.photo_url}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid #ccc;" title="Cliquer pour agrandir"></a>`;
@@ -364,26 +370,4 @@ async function supprimerIntervention(id) {
         afficherNotification('🗑️ Intervention supprimée avec succès !');
         chargerHistorique();
 
-    } catch (error) {
-        console.error('Erreur lors de la suppression :', error);
-        afficherNotification('Erreur lors de la suppression : ' + error.message, 'erreur');
-    }
-}
-
-function filtrerHistoriqueLocal(e) {
-    const termeRecherche = (e.target.value || '').toLowerCase().trim();
-
-    const donneesFiltrees = historiqueGlobal.filter(item => {
-        const eq = (item.equipment || item.equipement || '').toLowerCase();
-        const panne = (item.panne_travail || '').toLowerCase();
-        const prestataire = (item.prestataire || '').toLowerCase();
-        const date = (item.date_intervention || '').toLowerCase();
-
-        return eq.includes(termeRecherche) ||
-               panne.includes(termeRecherche) ||
-               prestataire.includes(termeRecherche) ||
-               date.includes(termeRecherche);
-    });
-
-    afficherTableau(donneesFiltrees);
-}
+    } c
