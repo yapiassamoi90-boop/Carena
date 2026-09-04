@@ -79,6 +79,18 @@
             margin-top: 25px;
         }
 
+        /* Style de la notification in-app */
+        #notification {
+            display: none;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
         .form-group {
             margin-bottom: 15px;
         }
@@ -184,6 +196,10 @@
 
     <div class="container">
         <h2>Enregistrer une Intervention</h2>
+
+        <!-- Zone de notification in-app -->
+        <div id="notification"></div>
+
         <form id="interventionForm">
             <div class="form-group">
                 <label for="equipementSelect">Sélectionner l'Équipement / Atelier / Villa :</label>
@@ -213,7 +229,6 @@
                 <textarea id="panneResolue" rows="3" placeholder="Ex: Nettoyage filtres + Détartrage / Remplacement compresseur..." required></textarea>
             </div>
 
-            <!-- CHAMP APPAREIL PHOTO INTÉGRÉ -->
             <div class="form-group">
                 <label for="photoInput">Photo / Justificatif :</label>
                 <input type="file" id="photoInput" accept="image/*" capture="environment">
