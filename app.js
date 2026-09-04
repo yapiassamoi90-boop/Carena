@@ -139,8 +139,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('interventionForm').addEventListener('submit', enregistrerIntervention);
     
-    // Écouteur de recherche instantanée ultra fluide
-    document.getElementById('searchInput').addEventListener('input', filtrerHistoriqueLocal);
+    // Recherche instantanée
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', filtrerHistoriqueLocal);
+    }
 });
 
 function remplirSelectEquipements() {
@@ -167,10 +170,17 @@ async function enregistrerIntervention(e) {
     const heureFinVal = document.getElementById('heureFin').value;
     const panneVal = document.getElementById('panneResolue').value;
     const prestataireVal = document.getElementById('prestataire').value;
+    const photoInput = document.getElementById('photoInput');
 
     if (!equipementVal) {
         alert('Veuillez sélectionner un équipement ou une villa dans la liste.');
         return;
+    }
+
+    let photoUrlVal = '';
+    if (photoInput && photoInput.files && photoInput.files[0]) {
+        const file = photoInput.files[0];
+        photoUrlVal = await convertirFichierEnBase64(file);
     }
 
     const interventionData = {
@@ -179,7 +189,8 @@ async function enregistrerIntervention(e) {
         heure_debut: heureDebutVal || null,
         heure_fin: heureFinVal || null,
         panne_travail: panneVal || '',
-        prestataire: prestataireVal || ''
+        prestataire: prestataireVal || '',
+        photo_url: photoUrlVal || ''
     };
 
     try {
@@ -192,6 +203,7 @@ async function enregistrerIntervention(e) {
         alert('Intervention enregistrée avec succès !');
         document.getElementById('interventionForm').reset();
         document.getElementById('dateIntervention').value = new Date().toISOString().split('T')[0];
+        if (photoInput) photoInput.value = '';
         chargerHistorique();
 
     } catch (error) {
@@ -200,9 +212,20 @@ async function enregistrerIntervention(e) {
     }
 }
 
+function convertirFichierEnBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
+}
+
 async function chargerHistorique() {
     const tbody = document.querySelector('#historiqueTable tbody');
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#777;">Chargement de l\'historique...</td></tr>';
+    if (!tbody) return;
+
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#777;">Chargement de l\'historique...</td></tr>';
 
     try {
         const { data, error } = await _supabase
@@ -215,7 +238,7 @@ async function chargerHistorique() {
         historiqueGlobal = data || [];
 
         if (historiqueGlobal.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#777;">Aucune intervention enregistrée pour le moment.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#777;">Aucune intervention enregistrée pour le moment.</td></tr>';
             return;
         }
 
@@ -223,16 +246,24 @@ async function chargerHistorique() {
 
     } catch (error) {
         console.error('Erreur chargement historique :', error.message);
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:red;">Erreur de chargement des données.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:red;">Erreur de chargement des données.</td></tr>';
     }
 }
 
 function afficherTableau(donnees) {
     const tbody = document.querySelector('#historiqueTable tbody');
+    if (!tbody) return;
+
     tbody.innerHTML = '';
 
     donnees.forEach(item => {
         const nomEquipement = item.equipment || item.equipement || '';
+        
+        let photoHtml = 'Aucune';
+        if (item.photo_url) {
+            photoHtml = `<a href="${item.photo_url}" target="_blank"><img src="${item.photo_url}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;" title="Voir la photo"></a>`;
+        }
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><strong>${nomEquipement}</strong></td>
@@ -240,6 +271,7 @@ function afficherTableau(donnees) {
             <td>${item.heure_debut || '--:--'} - ${item.heure_fin || '--:--'}</td>
             <td>${item.panne_travail || ''}</td>
             <td><em>${item.prestataire || ''}</em></td>
+            <td style="text-align: center;">${photoHtml}</td>
             <td style="text-align: center; white-space: nowrap;">
                 <button onclick="supprimerIntervention(${item.id})" style="background-color: #dc2626; padding: 6px 12px; font-size: 0.85rem; width: auto; display: inline-block;" title="Supprimer">🗑️ Suppr.</button>
             </td>
@@ -270,7 +302,6 @@ async function supprimerIntervention(id) {
     }
 }
 
-// Recherche instantanée basée sur les données déjà chargées (plus rapide et sans latence)
 function filtrerHistoriqueLocal(e) {
     const termeRecherche = e.target.value.toLowerCase().trim();
 
