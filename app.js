@@ -383,8 +383,8 @@ function afficherTableau(donnees) {
             <td>${item.heure_debut || '--:--'} - ${item.heure_fin || '--:--'}</td>
             <td>${item.panne_travail || ''}</td>
             <td><em>${item.prestataire || ''}</em></td>
-            <td style="font-size: 0.85rem; color: #334155;"><u style="text-decoration: underline; font-weight: 600;">${signatureVal}</u></td>
             <td style="text-align: center;">${photoHtml}</td>
+            <td style="font-size: 0.85rem; color: #334155;"><u style="text-decoration: underline; font-weight: 600;">${signatureVal}</u></td>
             <td style="text-align: center; white-space: nowrap;">
                 <button onclick="supprimerIntervention(${item.id})" style="background-color: #dc2626; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 0.85rem; cursor: pointer;" title="Supprimer">🗑️ Suppr.</button>
             </td>
