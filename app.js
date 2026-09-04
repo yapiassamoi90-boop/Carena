@@ -170,11 +170,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     imageApercu.src = event.target.result;
-                    aperçuContainer.style.display = 'block';
+                    if (aperçuContainer) aperçuContainer.style.display = 'block';
                 }
                 reader.readAsDataURL(file);
             } else {
-                aperçuContainer.style.display = 'none';
+                if (aperçuContainer) aperçuContainer.style.display = 'none';
             }
         });
     }
@@ -242,7 +242,6 @@ async function enregistrerIntervention(e) {
     if (photoInput && photoInput.files && photoInput.files[0]) {
         const file = photoInput.files[0];
         try {
-            // Compression automatique de l'image (max 800px de large, qualité 70%)
             photoUrlVal = await compresserImageEnBase64(file, 800, 0.7);
         } catch (err) {
             console.warn('Compression échouée, utilisation directe :', err);
@@ -273,7 +272,6 @@ async function enregistrerIntervention(e) {
         document.getElementById('dateIntervention').value = new Date().toISOString().split('T')[0];
         if (photoInput) photoInput.value = '';
         
-        // Cacher l'aperçu de l'image
         const aperçuContainer = document.getElementById('aperçuContainer');
         if (aperçuContainer) aperçuContainer.style.display = 'none';
 
@@ -285,7 +283,6 @@ async function enregistrerIntervention(e) {
     }
 }
 
-// Fonction de compression d'image pour optimiser la taille du Base64
 function compresserImageEnBase64(file, maxWidth = 800, quality = 0.7) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -370,7 +367,6 @@ function afficherTableau(donnees) {
     donnees.forEach(item => {
         const nomEquipement = item.equipment || item.equipement || '';
         
-        // Affichage propre de la photo sous forme de miniature carrée cliquable
         let photoHtml = '<span style="color: #94a3b8; font-size: 0.85rem;">Aucune</span>';
         if (item.photo_url && item.photo_url.startsWith('data:image')) {
             photoHtml = `
