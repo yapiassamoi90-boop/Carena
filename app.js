@@ -4,9 +4,11 @@
 const SUPABASE_URL = 'https://okudbyjsfaafuiezjihm.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_qOK5Be5WMFki88iVLnDhdw_NHxkkhrC';
 
-// Initialisation du client Supabase
 const { createClient } = supabase;
 const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Variable globale pour stocker l'historique et filtrer instantanément
+let historiqueGlobal = [];
 
 // ==========================================
 // LISTE COMPLÈTE DES ÉQUIPEMENTS & VILLAS (Carena)
@@ -128,34 +130,24 @@ const equipementsList = [
     { code: "87072", nom: "87072 - Consom. remorqueur Abroka" }
 ];
 
-// ==========================================
-// INITIALISATION DE L'APPLICATION
-// ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     remplirSelectEquipements();
     chargerHistorique();
 
-    // Date du jour par défaut
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('dateIntervention').value = today;
 
-    // Écouteur de formulaire
     document.getElementById('interventionForm').addEventListener('submit', enregistrerIntervention);
-
-    // Écouteur de recherche dans l'historique
-    document.getElementById('searchInput').addEventListener('input', filtrerHistorique);
+    
+    // Écouteur de recherche instantanée ultra fluide
+    document.getElementById('searchInput').addEventListener('input', filtrerHistoriqueLocal);
 });
 
-// ==========================================
-// REMPLIR LE MENU DÉROULANT CLASSIQUE
-// ==========================================
 function remplirSelectEquipements() {
     const select = document.getElementById('equipementSelect');
     if (!select) return;
 
-    // Tri alphabétique
     equipementsList.sort((a, b) => a.nom.localeCompare(b.nom));
-
     select.innerHTML = '<option value="">-- Sélectionnez un équipement ou atelier --</option>';
 
     equipementsList.forEach(eq => {
@@ -166,9 +158,6 @@ function remplirSelectEquipements() {
     });
 }
 
-// ==========================================
-// ENREGISTRER UNE INTERVENTION (SUPABASE)
-// ==========================================
 async function enregistrerIntervention(e) {
     e.preventDefault();
 
@@ -198,10 +187,7 @@ async function enregistrerIntervention(e) {
             .from('interventions_maintenance')
             .insert([interventionData]);
 
-        if (error) {
-            console.error("Détail erreur Supabase:", error);
-            throw new Error(error.message);
-        }
+        if (error) throw new Error(error.message);
 
         alert('Intervention enregistrée avec succès !');
         document.getElementById('interventionForm').reset();
@@ -214,9 +200,6 @@ async function enregistrerIntervention(e) {
     }
 }
 
-// ==========================================
-// CHARGER L'HISTORIQUE DEPUIS SUPABASE
-// ==========================================
 async function chargerHistorique() {
     const tbody = document.querySelector('#historiqueTable tbody');
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#777;">Chargement de l\'historique...</td></tr>';
@@ -229,12 +212,14 @@ async function chargerHistorique() {
 
         if (error) throw error;
 
-        if (!data || data.length === 0) {
+        historiqueGlobal = data || [];
+
+        if (historiqueGlobal.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#777;">Aucune intervention enregistrée pour le moment.</td></tr>';
             return;
         }
 
-        afficherTableau(data);
+        afficherTableau(historiqueGlobal);
 
     } catch (error) {
         console.error('Erreur chargement historique :', error.message);
@@ -242,9 +227,6 @@ async function chargerHistorique() {
     }
 }
 
-// ==========================================
-// AFFICHAGE DU TABLEAU AVEC BOUTON SUPPRESSION
-// ==========================================
 function afficherTableau(donnees) {
     const tbody = document.querySelector('#historiqueTable tbody');
     tbody.innerHTML = '';
@@ -258,17 +240,14 @@ function afficherTableau(donnees) {
             <td>${item.heure_debut || '--:--'} - ${item.heure_fin || '--:--'}</td>
             <td>${item.panne_travail || ''}</td>
             <td><em>${item.prestataire || ''}</em></td>
-            <td style="text-align: center;">
-                <button onclick="supprimerIntervention(${item.id})" style="background-color: #dc2626; padding: 6px 10px; font-size: 0.85rem; width: auto;" title="Supprimer">🗑️</button>
+            <td style="text-align: center; white-space: nowrap;">
+                <button onclick="supprimerIntervention(${item.id})" style="background-color: #dc2626; padding: 6px 12px; font-size: 0.85rem; width: auto; display: inline-block;" title="Supprimer">🗑️ Suppr.</button>
             </td>
         `;
         tbody.appendChild(tr);
     });
 }
 
-// ==========================================
-// SUPPRIMER UNE INTERVENTION DEPUIS SUPABASE
-// ==========================================
 async function supprimerIntervention(id) {
     if (!confirm('Voulez-vous vraiment supprimer cette intervention ?')) {
         return;
@@ -291,31 +270,21 @@ async function supprimerIntervention(id) {
     }
 }
 
-// ==========================================
-// RECHERCHE / FILTRE DANS L'HISTORIQUE
-// ==========================================
-async function filtrerHistorique(e) {
-    const termeRecherche = e.target.value.toLowerCase();
-    
-    try {
-        const { data, error } = await _supabase
-            .from('interventions_maintenance')
-            .select('*')
-            .order('date_intervention', { ascending: false });
+// Recherche instantanée basée sur les données déjà chargées (plus rapide et sans latence)
+function filtrerHistoriqueLocal(e) {
+    const termeRecherche = e.target.value.toLowerCase().trim();
 
-        if (error) throw error;
+    const donneesFiltrees = historiqueGlobal.filter(item => {
+        const eq = (item.equipment || item.equipement || '').toLowerCase();
+        const panne = (item.panne_travail || '').toLowerCase();
+        const prestataire = (item.prestataire || '').toLowerCase();
+        const date = (item.date_intervention || '').toLowerCase();
 
-        const donneesFiltrees = data.filter(item => {
-            const eq = item.equipment || item.equipement || '';
-            return eq.toLowerCase().includes(termeRecherche) ||
-                   (item.panne_travail && item.panne_travail.toLowerCase().includes(termeRecherche)) ||
-                   (item.prestataire && item.prestataire.toLowerCase().includes(termeRecherche)) ||
-                   (item.date_intervention && item.date_intervention.includes(termeRecherche));
-        });
+        return eq.includes(termeRecherche) ||
+               panne.includes(termeRecherche) ||
+               prestataire.includes(termeRecherche) ||
+               date.includes(termeRecherche);
+    });
 
-        afficherTableau(donneesFiltrees);
-
-    } catch (error) {
-        console.error('Erreur lors du filtrage :', error);
-    }
+    afficherTableau(donneesFiltrees);
 }
