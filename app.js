@@ -16,12 +16,14 @@ try {
     console.error("❌ Erreur d'initialisation Supabase :", err);
 }
 
+// Variable globale pour stocker l'historique et filtrer instantanément
 let historiqueGlobal = [];
 
 // ==========================================
 // LISTE COMPLÈTE DES ÉQUIPEMENTS & VILLAS (Carena)
 // ==========================================
 const equipementsList = [
+    // --- Ateliers, Bâtiments & Bureaux (61xxx) ---
     { code: "61001", nom: "61001 - Bureaux Direction Production" },
     { code: "61002", nom: "61002 - Bâtiments magasins et parc à tôles" },
     { code: "61003", nom: "61003 - Bâtiment Peinture Anticorrosion" },
@@ -53,6 +55,8 @@ const equipementsList = [
     { code: "61045", nom: "61045 - Hangar & matériel de sablage" },
     { code: "61535", nom: "61535 - Réseau eau & air" },
     { code: "61536", nom: "61536 - Réseau électrique & transformateurs" },
+
+    // --- Villas (62101 à 62120) ---
     { code: "62101", nom: "62101 - Villa n° 01" },
     { code: "62102", nom: "62102 - Villa n° 02" },
     { code: "62103", nom: "62103 - Villa n° 03" },
@@ -73,6 +77,8 @@ const equipementsList = [
     { code: "62118", nom: "62118 - Villa n° 18" },
     { code: "62119", nom: "62119 - Villa n° 19" },
     { code: "62120", nom: "62120 - Villa n° 20" },
+
+    // --- Machines & Équipements Industriels (63xxx) ---
     { code: "63001", nom: "63001 - Poste de soudure ARC" },
     { code: "63011", nom: "63011 - Groupe motopompe" },
     { code: "63012", nom: "63012 - Ventilateur extracteur d'air" },
@@ -88,12 +94,16 @@ const equipementsList = [
     { code: "63225", nom: "63225 - Pompe de détartrage KAMCO C210" },
     { code: "63536", nom: "63536 - Tour Sculfort Maxicap 129130" },
     { code: "63546", nom: "63546 - Pont roulant tour 8 (YALE- 5 Tonnes)" },
+
+    // --- Véhicules, Grues & Engins (65xxx / 77xxx) ---
     { code: "65365", nom: "65365 - RENAULT LOGAN 1.2L 7586 HA 01" },
     { code: "65366", nom: "65366 - Mitsubishi L200 184 HK 01 - Manutention" },
     { code: "65501", nom: "65501 - Grue à tour BPR n° 5 type GT 229 B" },
     { code: "65513", nom: "65513 - NACELLE ARTICULEE HAULOTTE N°1" },
     { code: "65523", nom: "65523 - CHARIOT ELEVATEUR 5 TONNES H5.OFT" },
     { code: "77060", nom: "77060 - ENTRETIEN TRANSFORMATEURS & REMPLACEMENT CELLULES" },
+
+    // --- Consommables Véhicules, Nacelles & Engins Maritimes (85xxx - 87xxx) ---
     { code: "85367", nom: "85367 - Conso. MITSUBISHI L200 936 HL 01 - ADMINISTRATION" },
     { code: "85368", nom: "85368 - Conso. RENAULT DUSTER 3388WW01 - Yann PERRET" },
     { code: "85369", nom: "85369 - Conso. RENAULT DOKKER VAN 1.5L - 8841WW01 (Supply Chain)" },
@@ -147,8 +157,30 @@ document.addEventListener('DOMContentLoaded', () => {
     if (searchInput) {
         searchInput.addEventListener('input', filtrerHistoriqueLocal);
     }
+
+    // Gestion de l'aperçu de la photo en direct
+    const photoInput = document.getElementById('photoInput');
+    if (photoInput) {
+        photoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const aperçuContainer = document.getElementById('aperçuContainer');
+            const imageApercu = document.getElementById('imageApercu');
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    imageApercu.src = event.target.result;
+                    aperçuContainer.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            } else {
+                aperçuContainer.style.display = 'none';
+            }
+        });
+    }
 });
 
+// Fonction pour afficher une notification visuelle in-app
 function afficherNotification(message, type = 'succes') {
     const notif = document.getElementById('notification');
     if (!notif) return;
@@ -210,6 +242,7 @@ async function enregistrerIntervention(e) {
     if (photoInput && photoInput.files && photoInput.files[0]) {
         const file = photoInput.files[0];
         try {
+            // Compression automatique de l'image (max 800px de large, qualité 70%)
             photoUrlVal = await compresserImageEnBase64(file, 800, 0.7);
         } catch (err) {
             console.warn('Compression échouée, utilisation directe :', err);
@@ -239,6 +272,11 @@ async function enregistrerIntervention(e) {
         document.getElementById('interventionForm').reset();
         document.getElementById('dateIntervention').value = new Date().toISOString().split('T')[0];
         if (photoInput) photoInput.value = '';
+        
+        // Cacher l'aperçu de l'image
+        const aperçuContainer = document.getElementById('aperçuContainer');
+        if (aperçuContainer) aperçuContainer.style.display = 'none';
+
         chargerHistorique();
 
     } catch (error) {
@@ -247,6 +285,7 @@ async function enregistrerIntervention(e) {
     }
 }
 
+// Fonction de compression d'image pour optimiser la taille du Base64
 function compresserImageEnBase64(file, maxWidth = 800, quality = 0.7) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -331,11 +370,15 @@ function afficherTableau(donnees) {
     donnees.forEach(item => {
         const nomEquipement = item.equipment || item.equipement || '';
         
-        let photoHtml = '<span style="color: #888; font-size: 0.85rem;">Aucune</span>';
+        // Affichage propre de la photo sous forme de miniature carrée cliquable
+        let photoHtml = '<span style="color: #94a3b8; font-size: 0.85rem;">Aucune</span>';
         if (item.photo_url && item.photo_url.startsWith('data:image')) {
-            photoHtml = `<a href="${item.photo_url}" target="_blank"><img src="${item.photo_url}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid #ccc;" title="Cliquer pour agrandir"></a>`;
+            photoHtml = `
+                <a href="${item.photo_url}" target="_blank" title="Cliquer pour voir l'image en grand">
+                    <img src="${item.photo_url}" style="width: 45px; height: 45px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+                </a>`;
         } else if (item.photo_url) {
-            photoHtml = `<a href="${item.photo_url}" target="_blank" style="font-size: 0.85rem; color: #0284c7; text-decoration: underline;">📷 Voir</a>`;
+            photoHtml = `<a href="${item.photo_url}" target="_blank" style="font-size: 0.85rem; color: #0284c7; text-decoration: underline; font-weight: 500;">📷 Voir</a>`;
         }
 
         const tr = document.createElement('tr');
@@ -345,9 +388,9 @@ function afficherTableau(donnees) {
             <td>${item.heure_debut || '--:--'} - ${item.heure_fin || '--:--'}</td>
             <td>${item.panne_travail || ''}</td>
             <td><em>${item.prestataire || ''}</em></td>
-            <td style="text-align: center;">${photoHtml}</td>
-            <td style="text-align: center; white-space: nowrap;">
-                <button onclick="supprimerIntervention(${item.id})" style="background-color: #dc2626; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 0.85rem; cursor: pointer;" title="Supprimer">🗑️ Suppr.</button>
+            <td style="text-align: center; vertical-align: middle;">${photoHtml}</td>
+            <td style="text-align: center; vertical-align: middle; white-space: nowrap;">
+                <button onclick="supprimerIntervention(${item.id})" style="background-color: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; padding: 6px 10px; border-radius: 6px; font-size: 0.85rem; cursor: pointer;" title="Supprimer">🗑️</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -370,4 +413,26 @@ async function supprimerIntervention(id) {
         afficherNotification('🗑️ Intervention supprimée avec succès !');
         chargerHistorique();
 
-    } c
+    } catch (error) {
+        console.error('Erreur lors de la suppression :', error);
+        afficherNotification('Erreur lors de la suppression : ' + error.message, 'erreur');
+    }
+}
+
+function filtrerHistoriqueLocal(e) {
+    const termeRecherche = (e.target.value || '').toLowerCase().trim();
+
+    const donneesFiltrees = historiqueGlobal.filter(item => {
+        const eq = (item.equipment || item.equipement || '').toLowerCase();
+        const panne = (item.panne_travail || '').toLowerCase();
+        const prestataire = (item.prestataire || '').toLowerCase();
+        const date = (item.date_intervention || '').toLowerCase();
+
+        return eq.includes(termeRecherche) ||
+               panne.includes(termeRecherche) ||
+               prestataire.includes(termeRecherche) ||
+               date.includes(termeRecherche);
+    });
+
+    afficherTableau(donneesFiltrees);
+}
