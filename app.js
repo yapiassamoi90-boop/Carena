@@ -155,6 +155,29 @@ document.addEventListener('DOMContentLoaded', () => {
     if (searchInput) {
         searchInput.addEventListener('input', filtrerHistoriqueLocal);
     }
+
+    // Aperçu dynamique de l'image sélectionnée
+    const photoInput = document.getElementById('photoInput');
+    const apercuContainer = document.getElementById('aperçuContainer');
+    const imageApercu = document.getElementById('imageApercu');
+
+    if (photoInput) {
+        photoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    if (imageApercu && apercuContainer) {
+                        imageApercu.src = event.target.result;
+                        apercuContainer.style.display = 'block';
+                    }
+                }
+                reader.readAsDataURL(file);
+            } else {
+                if (apercuContainer) apercuContainer.style.display = 'none';
+            }
+        });
+    }
 });
 
 // Fonction pour afficher une notification visuelle in-app
@@ -227,7 +250,6 @@ async function enregistrerIntervention(e) {
         }
     }
 
-    // Inclusion automatique de ta signature soulignée dans l'objet envoyé à Supabase
     const interventionData = {
         equipment: equipementVal,
         date_intervention: dateVal,
@@ -251,6 +273,10 @@ async function enregistrerIntervention(e) {
         document.getElementById('interventionForm').reset();
         document.getElementById('dateIntervention').value = new Date().toISOString().split('T')[0];
         if (photoInput) photoInput.value = '';
+        
+        const apercuContainer = document.getElementById('aperçuContainer');
+        if (apercuContainer) apercuContainer.style.display = 'none';
+
         chargerHistorique();
 
     } catch (error) {
@@ -347,7 +373,7 @@ function afficherTableau(donnees) {
         
         let photoHtml = '<span style="color: #94a3b8; font-size: 0.85rem;">Aucune</span>';
         if (item.photo_url) {
-            photoHtml = `<a href="${item.photo_url}" target="_blank"><img src="${item.photo_url}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;" title="Voir la photo"></a>`;
+            photoHtml = `<a href="${item.photo_url}" target="_blank"><img src="${item.photo_url}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid #cbd5e1;" title="Cliquer pour agrandir"></a>`;
         }
 
         const tr = document.createElement('tr');
@@ -357,10 +383,10 @@ function afficherTableau(donnees) {
             <td>${item.heure_debut || '--:--'} - ${item.heure_fin || '--:--'}</td>
             <td>${item.panne_travail || ''}</td>
             <td><em>${item.prestataire || ''}</em></td>
-            <td style="font-size: 0.9rem; color: #334155;"><u style="text-decoration: underline; font-weight: 600;">${signatureVal}</u></td>
+            <td style="font-size: 0.85rem; color: #334155;"><u style="text-decoration: underline; font-weight: 600;">${signatureVal}</u></td>
             <td style="text-align: center;">${photoHtml}</td>
             <td style="text-align: center; white-space: nowrap;">
-                <button onclick="supprimerIntervention(${item.id})" style="background-color: #dc2626; padding: 6px 12px; font-size: 0.85rem; width: auto; display: inline-block; cursor: pointer;" title="Supprimer">🗑️ Suppr.</button>
+                <button onclick="supprimerIntervention(${item.id})" style="background-color: #dc2626; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 0.85rem; cursor: pointer;" title="Supprimer">🗑️ Suppr.</button>
             </td>
         `;
         tbody.appendChild(tr);
