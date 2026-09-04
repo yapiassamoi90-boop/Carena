@@ -4,17 +4,8 @@
 const SUPABASE_URL = 'https://okudbyjsfaafuiezjihm.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_qOK5Be5WMFki88iVLnDhdw_NHxkkhrC';
 
-let _supabase = null;
-try {
-    if (typeof supabase !== 'undefined') {
-        const { createClient } = supabase;
-        _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } else {
-        console.error("❌ La bibliothèque Supabase n'est pas chargée dans le HTML !");
-    }
-} catch (err) {
-    console.error("❌ Erreur d'initialisation Supabase :", err);
-}
+const { createClient } = supabase;
+const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Variable globale pour stocker l'historique et filtrer instantanément
 let historiqueGlobal = [];
@@ -144,38 +135,14 @@ document.addEventListener('DOMContentLoaded', () => {
     chargerHistorique();
 
     const today = new Date().toISOString().split('T')[0];
-    const dateField = document.getElementById('dateIntervention');
-    if (dateField) dateField.value = today;
+    document.getElementById('dateIntervention').value = today;
 
-    const form = document.getElementById('interventionForm');
-    if (form) form.addEventListener('submit', enregistrerIntervention);
+    document.getElementById('interventionForm').addEventListener('submit', enregistrerIntervention);
     
     // Recherche instantanée
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.addEventListener('input', filtrerHistoriqueLocal);
-    }
-
-    // Gestion de l'aperçu dynamique de la photo
-    const photoInput = document.getElementById('photoInput');
-    if (photoInput) {
-        photoInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            const aperçuContainer = document.getElementById('aperçuContainer');
-            const imageApercu = document.getElementById('imageApercu');
-
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    imageApercu.src = event.target.result;
-                    if (aperçuContainer) aperçuContainer.style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-            } else {
-                if (imageApercu) imageApercu.src = '';
-                if (aperçuContainer) aperçuContainer.style.display = 'none';
-            }
-        });
     }
 });
 
@@ -197,6 +164,7 @@ function afficherNotification(message, type = 'succes') {
         notif.style.border = '1px solid #f5c2c7';
     }
 
+    // Fait disparaître la notification automatiquement après 5 secondes
     setTimeout(() => {
         notif.style.display = 'none';
     }, 5000);
@@ -220,11 +188,6 @@ function remplirSelectEquipements() {
 async function enregistrerIntervention(e) {
     e.preventDefault();
 
-    if (!_supabase) {
-        afficherNotification("Erreur : Base de données non connectée.", "erreur");
-        return;
-    }
-
     const equipementVal = document.getElementById('equipementSelect').value;
     const dateVal = document.getElementById('dateIntervention').value;
     const heureDebutVal = document.getElementById('heureDebut').value;
@@ -242,6 +205,7 @@ async function enregistrerIntervention(e) {
     if (photoInput && photoInput.files && photoInput.files[0]) {
         const file = photoInput.files[0];
         try {
+            // Compression automatique de l'image (max 800px de large, qualité 70%)
             photoUrlVal = await compresserImageEnBase64(file, 800, 0.7);
         } catch (err) {
             console.warn('Compression échouée, utilisation directe :', err);
@@ -249,7 +213,6 @@ async function enregistrerIntervention(e) {
         }
     }
 
-    // Inclusion automatique de ta signature soulignée dans l'objet envoyé à Supabase
     const interventionData = {
         equipment: equipementVal,
         date_intervention: dateVal,
@@ -257,8 +220,7 @@ async function enregistrerIntervention(e) {
         heure_fin: heureFinVal || null,
         panne_travail: panneVal || '',
         prestataire: prestataireVal || '',
-        photo_url: photoUrlVal || '',
-        signature: 'Dev.Assamoi'
+        photo_url: photoUrlVal || ''
     };
 
     try {
@@ -268,16 +230,12 @@ async function enregistrerIntervention(e) {
 
         if (error) throw new Error(error.message);
 
+        // Notification de succès in-app
         afficherNotification('✅ Intervention enregistrée avec succès !');
         
         document.getElementById('interventionForm').reset();
         document.getElementById('dateIntervention').value = new Date().toISOString().split('T')[0];
         if (photoInput) photoInput.value = '';
-        
-        // Cacher l'aperçu de l'image après réinitialisation
-        const aperçuContainer = document.getElementById('aperçuContainer');
-        if (aperçuContainer) aperçuContainer.style.display = 'none';
-
         chargerHistorique();
 
     } catch (error) {
@@ -332,12 +290,7 @@ async function chargerHistorique() {
     const tbody = document.querySelector('#historiqueTable tbody');
     if (!tbody) return;
 
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#777;">Chargement de l\'historique...</td></tr>';
-
-    if (!_supabase) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:red;">Erreur : Connexion Supabase absente.</td></tr>';
-        return;
-    }
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#777;">Chargement de l\'historique...</td></tr>';
 
     try {
         const { data, error } = await _supabase
@@ -350,7 +303,7 @@ async function chargerHistorique() {
         historiqueGlobal = data || [];
 
         if (historiqueGlobal.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#777;">Aucune intervention enregistrée pour le moment.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#777;">Aucune intervention enregistrée pour le moment.</td></tr>';
             return;
         }
 
@@ -358,7 +311,7 @@ async function chargerHistorique() {
 
     } catch (error) {
         console.error('Erreur chargement historique :', error.message);
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:red;">Erreur : ${error.message}</td></tr>`;
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:red;">Erreur de chargement des données.</td></tr>';
     }
 }
 
@@ -370,9 +323,8 @@ function afficherTableau(donnees) {
 
     donnees.forEach(item => {
         const nomEquipement = item.equipment || item.equipement || '';
-        const signatureVal = item.signature || 'Dev.Assamoi';
         
-        let photoHtml = '<span style="color: #94a3b8; font-size: 0.85rem;">Aucune</span>';
+        let photoHtml = 'Aucune';
         if (item.photo_url) {
             photoHtml = `<a href="${item.photo_url}" target="_blank"><img src="${item.photo_url}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;" title="Voir la photo"></a>`;
         }
@@ -384,10 +336,9 @@ function afficherTableau(donnees) {
             <td>${item.heure_debut || '--:--'} - ${item.heure_fin || '--:--'}</td>
             <td>${item.panne_travail || ''}</td>
             <td><em>${item.prestataire || ''}</em></td>
-            <td style="font-size: 0.9rem; color: #334155;"><u style="text-decoration: underline; font-weight: 600;">${signatureVal}</u></td>
             <td style="text-align: center;">${photoHtml}</td>
             <td style="text-align: center; white-space: nowrap;">
-                <button onclick="supprimerIntervention(${item.id})" style="background-color: #dc2626; padding: 6px 12px; font-size: 0.85rem; width: auto; display: inline-block; cursor: pointer;" title="Supprimer">🗑️ Suppr.</button>
+                <button onclick="supprimerIntervention(${item.id})" style="background-color: #dc2626; padding: 6px 12px; font-size: 0.85rem; width: auto; display: inline-block;" title="Supprimer">🗑️ Suppr.</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -424,13 +375,11 @@ function filtrerHistoriqueLocal(e) {
         const panne = (item.panne_travail || '').toLowerCase();
         const prestataire = (item.prestataire || '').toLowerCase();
         const date = (item.date_intervention || '').toLowerCase();
-        const signature = (item.signature || '').toLowerCase();
 
         return eq.includes(termeRecherche) ||
                panne.includes(termeRecherche) ||
                prestataire.includes(termeRecherche) ||
-               date.includes(termeRecherche) ||
-               signature.includes(termeRecherche);
+               date.includes(termeRecherche);
     });
 
     afficherTableau(donneesFiltrees);
