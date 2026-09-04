@@ -204,13 +204,7 @@ async function enregistrerIntervention(e) {
     let photoUrlVal = '';
     if (photoInput && photoInput.files && photoInput.files[0]) {
         const file = photoInput.files[0];
-        try {
-            // Compression automatique de l'image (max 800px de large, qualité 70%)
-            photoUrlVal = await compresserImageEnBase64(file, 800, 0.7);
-        } catch (err) {
-            console.warn('Compression échouée, utilisation directe :', err);
-            photoUrlVal = await convertirFichierEnBase64(file);
-        }
+        photoUrlVal = await convertirFichierEnBase64(file);
     }
 
     const interventionData = {
@@ -242,39 +236,6 @@ async function enregistrerIntervention(e) {
         console.error('Erreur lors de l\'enregistrement :', error);
         afficherNotification('Erreur Supabase : ' + error.message, 'erreur');
     }
-}
-
-// Fonction de compression d'image pour optimiser la taille du Base64
-function compresserImageEnBase64(file, maxWidth = 800, quality = 0.7) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = event => {
-            const img = new Image();
-            img.src = event.target.result;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                let width = img.width;
-                let height = img.height;
-
-                if (width > maxWidth) {
-                    height = Math.round((height * maxWidth) / width);
-                    width = maxWidth;
-                }
-
-                canvas.width = width;
-                canvas.height = height;
-
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-
-                const dataUrl = canvas.toDataURL('image/jpeg', quality);
-                resolve(dataUrl);
-            };
-            img.onerror = error => reject(error);
-        };
-        reader.onerror = error => reject(error);
-    });
 }
 
 function convertirFichierEnBase64(file) {
@@ -368,7 +329,7 @@ async function supprimerIntervention(id) {
 }
 
 function filtrerHistoriqueLocal(e) {
-    const termeRecherche = (e.target.value || '').toLowerCase().trim();
+    const termeRecherche = e.target.value.toLowerCase().trim();
 
     const donneesFiltrees = historiqueGlobal.filter(item => {
         const eq = (item.equipment || item.equipement || '').toLowerCase();
