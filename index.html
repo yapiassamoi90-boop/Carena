@@ -3,192 +3,258 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestion des Interventions - Carena</title>
-    <!-- Script Supabase CDN -->
+    <title>Carena - Traçabilité Maintenance</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#003366">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f6f9;
-            margin: 0;
-            padding: 15px;
-            color: #333;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: #ffffff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            position: relative; /* Indispensable pour caler la signature par rapport au container */
-        }
-        
-        /* Signature discrète en haut à droite, très petite et soulignée */
-        .dev-signature {
-            position: absolute;
-            top: 10px;
-            right: 15px;
-            font-size: 8px;
-            text-decoration: underline;
-            color: #64748b;
-            font-weight: 600;
-            letter-spacing: 0.5px;
+        :root {
+            --primary-color: #003366;
+            --secondary-color: #0055a5;
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --border-color: #d1d5db;
         }
 
-        h2, h3 {
-            color: #1e3a8a;
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            color: var(--text-color);
         }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            position: relative;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header-dev {
+            position: absolute;
+            top: 4px;
+            right: 8px;
+            font-size: 0.5rem;
+            text-decoration: underline;
+            opacity: 0.4;
+            font-family: monospace;
+        }
+
+        .header-content {
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.4rem;
+        }
+
+        header p {
+            margin: 5px 0 0 0;
+            font-size: 0.85rem;
+            opacity: 0.85;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 20px auto;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        h2 {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--secondary-color);
+            padding-bottom: 5px;
+            font-size: 1.2rem;
+            margin-top: 25px;
+        }
+
         .form-group {
             margin-bottom: 15px;
         }
+
         label {
             display: block;
-            font-weight: bold;
             margin-bottom: 5px;
+            font-weight: bold;
             font-size: 0.9rem;
         }
+
         select, input, textarea {
             width: 100%;
             padding: 10px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            font-size: 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
             box-sizing: border-box;
+            font-size: 1rem;
+            background-color: #fff;
         }
-        button[type="submit"] {
-            background-color: #1d4ed8;
+
+        select:focus, input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 2px rgba(0,85,165,0.1);
+        }
+
+        .time-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            background-color: var(--secondary-color);
             color: white;
+            padding: 12px 20px;
             border: none;
-            padding: 12px;
-            width: 100%;
-            border-radius: 6px;
+            border-radius: 4px;
+            cursor: pointer;
             font-size: 1rem;
             font-weight: bold;
-            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.2s;
         }
-        button[type="submit"]:hover {
-            background-color: #1e40af;
+
+        button:hover {
+            background-color: #003366;
         }
-        #notification {
-            display: none;
-            padding: 10px;
-            margin-bottom: 15px;
-            border-radius: 6px;
-            font-weight: bold;
-            text-align: center;
-        }
+
         .table-responsive {
             overflow-x: auto;
             margin-top: 15px;
         }
+
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.9rem;
+            min-width: 600px;
         }
+
         th, td {
-            border: 1px solid #e2e8f0;
+            border: 1px solid #e5e7eb;
             padding: 10px;
             text-align: left;
+            font-size: 0.9rem;
         }
+
         th {
-            background-color: #1e3a8a;
+            background-color: var(--primary-color);
             color: white;
+            font-weight: 600;
         }
+
         tr:nth-child(even) {
-            background-color: #f8fafc;
+            background-color: #f9fafb;
+        }
+
+        .search-box {
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                margin: 10px;
+                padding: 12px;
+            }
+            .time-row {
+                flex-direction: column;
+                gap: 15px;
+            }
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <!-- Signature discrète, très petite, soulignée et positionnée en haut à droite -->
-    <div class="dev-signature"><u>Dev.Assamoi</u></div>
-
-    <h2>Enregistrement d'Intervention</h2>
-    
-    <!-- Zone de notification -->
-    <div id="notification"></div>
-
-    <form id="interventionForm">
-        <div class="form-group">
-            <label for="equipementSelect">Équipement / Villa :</label>
-            <select id="equipementSelect" required>
-                <option value="">Chargement des équipements...</option>
-            </select>
+    <header>
+        <div class="header-dev">Dev.ASSAMOI</div>
+        <div class="header-content">
+            <h1>Carena - Suivi Maintenance</h1>
+            <p>Ateliers, Chantiers & Cadres</p>
         </div>
+    </header>
 
-        <div class="form-group">
-            <label for="dateIntervention">Date de l'intervention :</label>
-            <input type="date" id="dateIntervention" required>
-        </div>
-
-        <div style="display: flex; gap: 10px;">
-            <div class="form-group" style="flex: 1;">
-                <label for="heureDebut">Heure de début :</label>
-                <input type="time" id="heureDebut">
+    <div class="container">
+        <h2>Enregistrer une Intervention</h2>
+        <form id="interventionForm">
+            <div class="form-group">
+                <label for="equipementSelect">Sélectionner l'Équipement / Atelier / Villa :</label>
+                <select id="equipementSelect" required>
+                    <option value="">-- Sélectionnez un équipement ou atelier --</option>
+                </select>
             </div>
-            <div class="form-group" style="flex: 1;">
-                <label for="heureFin">Heure de fin :</label>
-                <input type="time" id="heureFin">
+
+            <div class="form-group">
+                <label for="dateIntervention">Date :</label>
+                <input type="date" id="dateIntervention" required>
             </div>
-        </div>
 
-        <div class="form-group">
-            <label for="panneResolue">Travail / Panne :</label>
-            <textarea id="panneResolue" rows="3" placeholder="Décrivez le travail ou la panne..."></textarea>
-        </div>
-
-        <div class="form-group">
-            <label for="prestataire">Nom de la Société / Intervenant :</label>
-            <input type="text" id="prestataire" placeholder="Ex: ClimServ / Jean Kouassi">
-        </div>
-
-        <div class="form-group">
-            <label for="photoInput">Photo / Justificatif :</label>
-            <input type="file" id="photoInput" accept="image/*" capture="environment">
-            <!-- Aperçu dynamique de la photo avant l'envoi -->
-            <div id="aperçuContainer" style="margin-top: 8px; display: none;">
-                <img id="imageApercu" src="" alt="Aperçu" style="max-width: 100px; max-height: 100px; border-radius: 6px; border: 1px solid #ccc; object-fit: cover;">
+            <div class="form-group time-row">
+                <div style="flex: 1;">
+                    <label for="heureDebut">Heure Début :</label>
+                    <input type="time" id="heureDebut" required>
+                </div>
+                <div style="flex: 1;">
+                    <label for="heureFin">Heure Fin :</label>
+                    <input type="time" id="heureFin" required>
+                </div>
             </div>
+
+            <div class="form-group">
+                <label for="panneResolue">Panne / Travail effectué :</label>
+                <textarea id="panneResolue" rows="3" placeholder="Ex: Nettoyage filtres + Détartrage / Remplacement compresseur..." required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="prestataire">Nom de la Société / Intervenant :</label>
+                <input type="text" id="prestataire" placeholder="Ex: ClimServ / Jean Kouassi" required>
+            </div>
+
+            <button type="submit">Enregistrer l'intervention</button>
+        </form>
+
+        <h2>Historique des Interventions</h2>
+        <div class="form-group search-box" style="margin-top: 15px;">
+            <input type="text" id="searchInput" placeholder="Rechercher dans l'historique (lieu, équipement, prestataire, panne)...">
         </div>
-
-        <button type="submit">Enregistrer l'intervention</button>
-    </form>
-
-    <hr style="margin: 30px 0; border: 0; border-top: 1px solid #cbd5e1;">
-
-    <h3>Historique des Interventions</h3>
-    <div class="form-group">
-        <input type="text" id="searchInput" placeholder="Rechercher dans l'historique (lieu, équipement, panne... )">
+        
+        <div class="table-responsive">
+            <table id="historiqueTable">
+                <thead>
+                    <tr>
+                        <th>Code & Lieu / Équipement</th>
+                        <th>Date</th>
+                        <th>Heures</th>
+                        <th>Travail / Panne</th>
+                        <th>Prestataire</th>
+                        <th style="text-align: center;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="6" style="text-align:center; color:#777;">Chargement de l'historique...</td></tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 
-    <div class="table-responsive">
-        <table id="historiqueTable">
-            <thead>
-                <tr>
-                    <th>Équipement</th>
-                    <th>Date</th>
-                    <th>Heures</th>
-                    <th>Travail / Panne</th>
-                    <th>Prestataire</th>
-                    <th>Signature</th>
-                    <th style="text-align: center;">Photo</th>
-                    <th style="text-align: center;">Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td colspan="8" style="text-align:center; color:#777;">Chargement de l'historique...</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-</div>
+    <script src="app.js"></script>
 
-<!-- Ton fichier JavaScript -->
-<script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker enregistré avec succès:', reg.scope))
+                    .catch(err => console.log('Échec de l\'enregistrement du Service Worker:', err));
+            });
+        }
+    </script>
 </body>
 </html>
