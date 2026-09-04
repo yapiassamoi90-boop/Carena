@@ -146,6 +146,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// Fonction pour afficher une notification visuelle in-app
+function afficherNotification(message, type = 'succes') {
+    const notif = document.getElementById('notification');
+    if (!notif) return;
+    
+    notif.textContent = message;
+    notif.style.display = 'block';
+    
+    if (type === 'succes') {
+        notif.style.backgroundColor = '#d1e7dd';
+        notif.style.color = '#0f5132';
+        notif.style.border = '1px solid #badbcc';
+    } else {
+        notif.style.backgroundColor = '#f8d7da';
+        notif.style.color = '#842029';
+        notif.style.border = '1px solid #f5c2c7';
+    }
+
+    // Fait disparaître la notification automatiquement après 5 secondes
+    setTimeout(() => {
+        notif.style.display = 'none';
+    }, 5000);
+}
+
 function remplirSelectEquipements() {
     const select = document.getElementById('equipementSelect');
     if (!select) return;
@@ -173,7 +197,7 @@ async function enregistrerIntervention(e) {
     const photoInput = document.getElementById('photoInput');
 
     if (!equipementVal) {
-        alert('Veuillez sélectionner un équipement ou une villa dans la liste.');
+        afficherNotification('Veuillez sélectionner un équipement ou une villa.', 'erreur');
         return;
     }
 
@@ -200,7 +224,9 @@ async function enregistrerIntervention(e) {
 
         if (error) throw new Error(error.message);
 
-        alert('Intervention enregistrée avec succès !');
+        // Notification de succès in-app
+        afficherNotification('✅ Intervention enregistrée avec succès !');
+        
         document.getElementById('interventionForm').reset();
         document.getElementById('dateIntervention').value = new Date().toISOString().split('T')[0];
         if (photoInput) photoInput.value = '';
@@ -208,7 +234,7 @@ async function enregistrerIntervention(e) {
 
     } catch (error) {
         console.error('Erreur lors de l\'enregistrement :', error);
-        alert('Erreur Supabase : ' + error.message);
+        afficherNotification('Erreur Supabase : ' + error.message, 'erreur');
     }
 }
 
@@ -293,12 +319,12 @@ async function supprimerIntervention(id) {
 
         if (error) throw error;
 
-        alert('Intervention supprimée avec succès !');
+        afficherNotification('🗑️ Intervention supprimée avec succès !');
         chargerHistorique();
 
     } catch (error) {
         console.error('Erreur lors de la suppression :', error);
-        alert('Erreur lors de la suppression : ' + error.message);
+        afficherNotification('Erreur lors de la suppression : ' + error.message, 'erreur');
     }
 }
 
