@@ -143,40 +143,17 @@ document.addEventListener('DOMContentLoaded', () => {
     remplirSelectEquipements();
     chargerHistorique();
 
+    const today = new Date().toISOString().split('T')[0];
     const dateField = document.getElementById('dateIntervention');
-    if (dateField) {
-        dateField.value = new Date().toISOString().split('T')[0];
-    }
+    if (dateField) dateField.value = today;
 
     const form = document.getElementById('interventionForm');
-    if (form) {
-        form.addEventListener('submit', enregistrerIntervention);
-    }
+    if (form) form.addEventListener('submit', enregistrerIntervention);
     
+    // Recherche instantanée
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.addEventListener('input', filtrerHistoriqueLocal);
-    }
-
-    // Gestion de l'aperçu de la photo en direct
-    const photoInput = document.getElementById('photoInput');
-    if (photoInput) {
-        photoInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            const aperçuContainer = document.getElementById('aperçuContainer');
-            const imageApercu = document.getElementById('imageApercu');
-
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    imageApercu.src = event.target.result;
-                    if (aperçuContainer) aperçuContainer.style.display = 'block';
-                }
-                reader.readAsDataURL(file);
-            } else {
-                if (aperçuContainer) aperçuContainer.style.display = 'none';
-            }
-        });
     }
 });
 
@@ -220,6 +197,7 @@ function remplirSelectEquipements() {
 
 async function enregistrerIntervention(e) {
     e.preventDefault();
+
     if (!_supabase) {
         afficherNotification("Erreur : Base de données non connectée.", "erreur");
         return;
@@ -249,6 +227,7 @@ async function enregistrerIntervention(e) {
         }
     }
 
+    // Inclusion automatique de ta signature soulignée dans l'objet envoyé à Supabase
     const interventionData = {
         equipment: equipementVal,
         date_intervention: dateVal,
@@ -256,7 +235,8 @@ async function enregistrerIntervention(e) {
         heure_fin: heureFinVal || null,
         panne_travail: panneVal || '',
         prestataire: prestataireVal || '',
-        photo_url: photoUrlVal || ''
+        photo_url: photoUrlVal || '',
+        signature: 'Dev.Assamoi'
     };
 
     try {
@@ -271,10 +251,6 @@ async function enregistrerIntervention(e) {
         document.getElementById('interventionForm').reset();
         document.getElementById('dateIntervention').value = new Date().toISOString().split('T')[0];
         if (photoInput) photoInput.value = '';
-        
-        const aperçuContainer = document.getElementById('aperçuContainer');
-        if (aperçuContainer) aperçuContainer.style.display = 'none';
-
         chargerHistorique();
 
     } catch (error) {
@@ -283,6 +259,7 @@ async function enregistrerIntervention(e) {
     }
 }
 
+// Fonction de compression d'image pour optimiser la taille du Base64
 function compresserImageEnBase64(file, maxWidth = 800, quality = 0.7) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -328,10 +305,10 @@ async function chargerHistorique() {
     const tbody = document.querySelector('#historiqueTable tbody');
     if (!tbody) return;
 
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#777;">Chargement de l\'historique...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#777;">Chargement de l\'historique...</td></tr>';
 
     if (!_supabase) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:red;">Erreur : Connexion Supabase absente.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:red;">Erreur : Connexion Supabase absente.</td></tr>';
         return;
     }
 
@@ -346,7 +323,7 @@ async function chargerHistorique() {
         historiqueGlobal = data || [];
 
         if (historiqueGlobal.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#777;">Aucune intervention enregistrée pour le moment.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#777;">Aucune intervention enregistrée pour le moment.</td></tr>';
             return;
         }
 
@@ -354,7 +331,7 @@ async function chargerHistorique() {
 
     } catch (error) {
         console.error('Erreur chargement historique :', error.message);
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:red;">Erreur : ${error.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:red;">Erreur : ${error.message}</td></tr>`;
     }
 }
 
@@ -366,15 +343,11 @@ function afficherTableau(donnees) {
 
     donnees.forEach(item => {
         const nomEquipement = item.equipment || item.equipement || '';
+        const signatureVal = item.signature || 'Dev.Assamoi';
         
         let photoHtml = '<span style="color: #94a3b8; font-size: 0.85rem;">Aucune</span>';
-        if (item.photo_url && item.photo_url.startsWith('data:image')) {
-            photoHtml = `
-                <a href="${item.photo_url}" target="_blank" title="Cliquer pour voir l'image en grand">
-                    <img src="${item.photo_url}" style="width: 45px; height: 45px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
-                </a>`;
-        } else if (item.photo_url) {
-            photoHtml = `<a href="${item.photo_url}" target="_blank" style="font-size: 0.85rem; color: #0284c7; text-decoration: underline; font-weight: 500;">📷 Voir</a>`;
+        if (item.photo_url) {
+            photoHtml = `<a href="${item.photo_url}" target="_blank"><img src="${item.photo_url}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;" title="Voir la photo"></a>`;
         }
 
         const tr = document.createElement('tr');
@@ -384,9 +357,10 @@ function afficherTableau(donnees) {
             <td>${item.heure_debut || '--:--'} - ${item.heure_fin || '--:--'}</td>
             <td>${item.panne_travail || ''}</td>
             <td><em>${item.prestataire || ''}</em></td>
-            <td style="text-align: center; vertical-align: middle;">${photoHtml}</td>
-            <td style="text-align: center; vertical-align: middle; white-space: nowrap;">
-                <button onclick="supprimerIntervention(${item.id})" style="background-color: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; padding: 6px 10px; border-radius: 6px; font-size: 0.85rem; cursor: pointer;" title="Supprimer">🗑️</button>
+            <td style="font-size: 0.9rem; color: #334155;"><u style="text-decoration: underline; font-weight: 600;">${signatureVal}</u></td>
+            <td style="text-align: center;">${photoHtml}</td>
+            <td style="text-align: center; white-space: nowrap;">
+                <button onclick="supprimerIntervention(${item.id})" style="background-color: #dc2626; padding: 6px 12px; font-size: 0.85rem; width: auto; display: inline-block; cursor: pointer;" title="Supprimer">🗑️ Suppr.</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -423,11 +397,13 @@ function filtrerHistoriqueLocal(e) {
         const panne = (item.panne_travail || '').toLowerCase();
         const prestataire = (item.prestataire || '').toLowerCase();
         const date = (item.date_intervention || '').toLowerCase();
+        const signature = (item.signature || '').toLowerCase();
 
         return eq.includes(termeRecherche) ||
                panne.includes(termeRecherche) ||
                prestataire.includes(termeRecherche) ||
-               date.includes(termeRecherche);
+               date.includes(termeRecherche) ||
+               signature.includes(termeRecherche);
     });
 
     afficherTableau(donneesFiltrees);
