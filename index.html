@@ -21,7 +21,21 @@
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: relative; /* Indispensable pour caler la signature par rapport au container */
         }
+        
+        /* Signature discrète en haut à droite, très petite et soulignée */
+        .dev-signature {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 8px;
+            text-decoration: underline;
+            color: #64748b;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
         h2, h3 {
             color: #1e3a8a;
         }
@@ -90,6 +104,9 @@
 <body>
 
 <div class="container">
+    <!-- Signature discrète, très petite, soulignée et positionnée en haut à droite -->
+    <div class="dev-signature"><u>Dev.Assamoi</u></div>
+
     <h2>Enregistrement d'Intervention</h2>
     
     <!-- Zone de notification -->
