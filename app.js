@@ -449,7 +449,7 @@ function exporterPDF() {
     doc.setTextColor(100, 116, 139);
     doc.text(`Généré le : ${new Date().toLocaleDateString()} | Total éléments : ${historiqueFiltre.length}`, 14, 22);
 
-    // Préparation des lignes pour le tableau PDF
+    // Préparation des lignes pour le tableau PDF (exactement 5 colonnes correspondantes)
     const tableRows = historiqueFiltre.map(item => [
         item.equipment || item.equipement || '',
         item.date_intervention || '',
