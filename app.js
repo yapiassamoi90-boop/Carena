@@ -4,17 +4,8 @@
 const SUPABASE_URL = 'https://okudbyjsfaafuiezjihm.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_qOK5Be5WMFki88iVLnDhdw_NHxkkhrC';
 
-let _supabase = null;
-try {
-    if (typeof supabase !== 'undefined') {
-        const { createClient } = supabase;
-        _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } else {
-        console.error("❌ La bibliothèque Supabase n'est pas chargée dans le HTML !");
-    }
-} catch (err) {
-    console.error("❌ Erreur d'initialisation Supabase :", err);
-}
+const { createClient } = supabase;
+const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Variable globale pour stocker l'historique et filtrer instantanément
 let historiqueGlobal = [];
@@ -144,64 +135,13 @@ document.addEventListener('DOMContentLoaded', () => {
     chargerHistorique();
 
     const today = new Date().toISOString().split('T')[0];
-    const dateField = document.getElementById('dateIntervention');
-    if (dateField) dateField.value = today;
+    document.getElementById('dateIntervention').value = today;
 
-    const form = document.getElementById('interventionForm');
-    if (form) form.addEventListener('submit', enregistrerIntervention);
+    document.getElementById('interventionForm').addEventListener('submit', enregistrerIntervention);
     
-    // Recherche instantanée
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        searchInput.addEventListener('input', filtrerHistoriqueLocal);
-    }
-
-    // Aperçu dynamique de l'image sélectionnée
-    const photoInput = document.getElementById('photoInput');
-    const apercuContainer = document.getElementById('aperçuContainer');
-    const imageApercu = document.getElementById('imageApercu');
-
-    if (photoInput) {
-        photoInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    if (imageApercu && apercuContainer) {
-                        imageApercu.src = event.target.result;
-                        apercuContainer.style.display = 'block';
-                    }
-                }
-                reader.readAsDataURL(file);
-            } else {
-                if (apercuContainer) apercuContainer.style.display = 'none';
-            }
-        });
-    }
+    // Écouteur de recherche instantanée ultra fluide
+    document.getElementById('searchInput').addEventListener('input', filtrerHistoriqueLocal);
 });
-
-// Fonction pour afficher une notification visuelle in-app
-function afficherNotification(message, type = 'succes') {
-    const notif = document.getElementById('notification');
-    if (!notif) return;
-    
-    notif.textContent = message;
-    notif.style.display = 'block';
-    
-    if (type === 'succes') {
-        notif.style.backgroundColor = '#d1e7dd';
-        notif.style.color = '#0f5132';
-        notif.style.border = '1px solid #badbcc';
-    } else {
-        notif.style.backgroundColor = '#f8d7da';
-        notif.style.color = '#842029';
-        notif.style.border = '1px solid #f5c2c7';
-    }
-
-    setTimeout(() => {
-        notif.style.display = 'none';
-    }, 5000);
-}
 
 function remplirSelectEquipements() {
     const select = document.getElementById('equipementSelect');
@@ -221,33 +161,16 @@ function remplirSelectEquipements() {
 async function enregistrerIntervention(e) {
     e.preventDefault();
 
-    if (!_supabase) {
-        afficherNotification("Erreur : Base de données non connectée.", "erreur");
-        return;
-    }
-
     const equipementVal = document.getElementById('equipementSelect').value;
     const dateVal = document.getElementById('dateIntervention').value;
     const heureDebutVal = document.getElementById('heureDebut').value;
     const heureFinVal = document.getElementById('heureFin').value;
     const panneVal = document.getElementById('panneResolue').value;
     const prestataireVal = document.getElementById('prestataire').value;
-    const photoInput = document.getElementById('photoInput');
 
     if (!equipementVal) {
-        afficherNotification('Veuillez sélectionner un équipement ou une villa.', 'erreur');
+        alert('Veuillez sélectionner un équipement ou une villa dans la liste.');
         return;
-    }
-
-    let photoUrlVal = '';
-    if (photoInput && photoInput.files && photoInput.files[0]) {
-        const file = photoInput.files[0];
-        try {
-            photoUrlVal = await compresserImageEnBase64(file, 800, 0.7);
-        } catch (err) {
-            console.warn('Compression échouée, utilisation directe :', err);
-            photoUrlVal = await convertirFichierEnBase64(file);
-        }
     }
 
     const interventionData = {
@@ -256,9 +179,7 @@ async function enregistrerIntervention(e) {
         heure_debut: heureDebutVal || null,
         heure_fin: heureFinVal || null,
         panne_travail: panneVal || '',
-        prestataire: prestataireVal || '',
-        photo_url: photoUrlVal || '',
-        signature: 'Dev.Assamoi'
+        prestataire: prestataireVal || ''
     };
 
     try {
@@ -268,75 +189,20 @@ async function enregistrerIntervention(e) {
 
         if (error) throw new Error(error.message);
 
-        afficherNotification('✅ Intervention enregistrée avec succès !');
-        
+        alert('Intervention enregistrée avec succès !');
         document.getElementById('interventionForm').reset();
         document.getElementById('dateIntervention').value = new Date().toISOString().split('T')[0];
-        if (photoInput) photoInput.value = '';
-        
-        const apercuContainer = document.getElementById('aperçuContainer');
-        if (apercuContainer) apercuContainer.style.display = 'none';
-
         chargerHistorique();
 
     } catch (error) {
         console.error('Erreur lors de l\'enregistrement :', error);
-        afficherNotification('Erreur Supabase : ' + error.message, 'erreur');
+        alert('Erreur Supabase : ' + error.message);
     }
-}
-
-// Fonction de compression d'image pour optimiser la taille du Base64
-function compresserImageEnBase64(file, maxWidth = 800, quality = 0.7) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = event => {
-            const img = new Image();
-            img.src = event.target.result;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                let width = img.width;
-                let height = img.height;
-
-                if (width > maxWidth) {
-                    height = Math.round((height * maxWidth) / width);
-                    width = maxWidth;
-                }
-
-                canvas.width = width;
-                canvas.height = height;
-
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-
-                const dataUrl = canvas.toDataURL('image/jpeg', quality);
-                resolve(dataUrl);
-            };
-            img.onerror = error => reject(error);
-        };
-        reader.onerror = error => reject(error);
-    });
-}
-
-function convertirFichierEnBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
-    });
 }
 
 async function chargerHistorique() {
     const tbody = document.querySelector('#historiqueTable tbody');
-    if (!tbody) return;
-
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#777;">Chargement de l\'historique...</td></tr>';
-
-    if (!_supabase) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:red;">Erreur : Connexion Supabase absente.</td></tr>';
-        return;
-    }
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#777;">Chargement de l\'historique...</td></tr>';
 
     try {
         const { data, error } = await _supabase
@@ -349,7 +215,7 @@ async function chargerHistorique() {
         historiqueGlobal = data || [];
 
         if (historiqueGlobal.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#777;">Aucune intervention enregistrée pour le moment.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#777;">Aucune intervention enregistrée pour le moment.</td></tr>';
             return;
         }
 
@@ -357,25 +223,16 @@ async function chargerHistorique() {
 
     } catch (error) {
         console.error('Erreur chargement historique :', error.message);
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:red;">Erreur : ${error.message}</td></tr>`;
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:red;">Erreur de chargement des données.</td></tr>';
     }
 }
 
 function afficherTableau(donnees) {
     const tbody = document.querySelector('#historiqueTable tbody');
-    if (!tbody) return;
-
     tbody.innerHTML = '';
 
     donnees.forEach(item => {
         const nomEquipement = item.equipment || item.equipement || '';
-        const signatureVal = item.signature || 'Dev.Assamoi';
-        
-        let photoHtml = '<span style="color: #94a3b8; font-size: 0.85rem;">Aucune</span>';
-        if (item.photo_url) {
-            photoHtml = `<a href="${item.photo_url}" target="_blank"><img src="${item.photo_url}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid #cbd5e1;" title="Cliquer pour agrandir"></a>`;
-        }
-
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><strong>${nomEquipement}</strong></td>
@@ -383,10 +240,8 @@ function afficherTableau(donnees) {
             <td>${item.heure_debut || '--:--'} - ${item.heure_fin || '--:--'}</td>
             <td>${item.panne_travail || ''}</td>
             <td><em>${item.prestataire || ''}</em></td>
-            <td style="text-align: center;">${photoHtml}</td>
-            <td style="font-size: 0.85rem; color: #334155;"><u style="text-decoration: underline; font-weight: 600;">${signatureVal}</u></td>
             <td style="text-align: center; white-space: nowrap;">
-                <button onclick="supprimerIntervention(${item.id})" style="background-color: #dc2626; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 0.85rem; cursor: pointer;" title="Supprimer">🗑️ Suppr.</button>
+                <button onclick="supprimerIntervention(${item.id})" style="background-color: #dc2626; padding: 6px 12px; font-size: 0.85rem; width: auto; display: inline-block;" title="Supprimer">🗑️ Suppr.</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -406,30 +261,29 @@ async function supprimerIntervention(id) {
 
         if (error) throw error;
 
-        afficherNotification('🗑️ Intervention supprimée avec succès !');
+        alert('Intervention supprimée avec succès !');
         chargerHistorique();
 
     } catch (error) {
         console.error('Erreur lors de la suppression :', error);
-        afficherNotification('Erreur lors de la suppression : ' + error.message, 'erreur');
+        alert('Erreur lors de la suppression : ' + error.message);
     }
 }
 
+// Recherche instantanée basée sur les données déjà chargées (plus rapide et sans latence)
 function filtrerHistoriqueLocal(e) {
-    const termeRecherche = (e.target.value || '').toLowerCase().trim();
+    const termeRecherche = e.target.value.toLowerCase().trim();
 
     const donneesFiltrees = historiqueGlobal.filter(item => {
         const eq = (item.equipment || item.equipement || '').toLowerCase();
         const panne = (item.panne_travail || '').toLowerCase();
         const prestataire = (item.prestataire || '').toLowerCase();
         const date = (item.date_intervention || '').toLowerCase();
-        const signature = (item.signature || '').toLowerCase();
 
         return eq.includes(termeRecherche) ||
                panne.includes(termeRecherche) ||
                prestataire.includes(termeRecherche) ||
-               date.includes(termeRecherche) ||
-               signature.includes(termeRecherche);
+               date.includes(termeRecherche);
     });
 
     afficherTableau(donneesFiltrees);
