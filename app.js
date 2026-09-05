@@ -243,8 +243,7 @@ async function enregistrerIntervention(e) {
         heure_fin: heureFinVal || null,
         panne_travail: panneVal || '',
         prestataire: prestataireVal || '',
-        photo_url: photoUrlVal || '',
-        signature: 'Dev.Assamoi'
+        photo_url: photoUrlVal || ''
     };
 
     try {
@@ -313,10 +312,10 @@ async function chargerHistorique() {
     const tbody = document.querySelector('#historiqueTable tbody');
     if (!tbody) return;
 
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#777;">Chargement de l\'historique...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#777;">Chargement de l\'historique...</td></tr>';
 
     if (!_supabase) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:red;">Erreur : Connexion Supabase absente.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:red;">Erreur : Connexion Supabase absente.</td></tr>';
         return;
     }
 
@@ -329,12 +328,11 @@ async function chargerHistorique() {
         if (error) throw error;
 
         historiqueGlobal = data || [];
-        // Appliquer les filtres initiaux (qui affichera tout si les champs sont vides)
         appliquerFiltres();
 
     } catch (error) {
         console.error('Erreur chargement historique :', error.message);
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:red;">Erreur : ${error.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:red;">Erreur : ${error.message}</td></tr>`;
     }
 }
 
@@ -349,15 +347,13 @@ function appliquerFiltres() {
         const panne = (item.panne_travail || '').toLowerCase();
         const prestataire = (item.prestataire || '').toLowerCase();
         const dateIntervention = item.date_intervention || '';
-        const signature = (item.signature || '').toLowerCase();
 
         // Condition texte
         const matchTexte = !termeRecherche || 
             eq.includes(termeRecherche) ||
             panne.includes(termeRecherche) ||
             prestataire.includes(termeRecherche) ||
-            dateIntervention.toLowerCase().includes(termeRecherche) ||
-            signature.includes(termeRecherche);
+            dateIntervention.toLowerCase().includes(termeRecherche);
 
         // Condition dates (Plage)
         let matchDate = true;
@@ -377,13 +373,12 @@ function afficherTableau(donnees) {
     tbody.innerHTML = '';
 
     if (donnees.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#777;">Aucune intervention trouvée pour ces critères.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#777;">Aucune intervention trouvée pour ces critères.</td></tr>';
         return;
     }
 
     donnees.forEach(item => {
         const nomEquipement = item.equipment || item.equipement || '';
-        const signatureVal = item.signature || 'Dev.Assamoi';
         
         let photoHtml = '<span style="color: #94a3b8; font-size: 0.85rem;">Aucune</span>';
         if (item.photo_url) {
@@ -397,7 +392,6 @@ function afficherTableau(donnees) {
             <td>${item.heure_debut || '--:--'} - ${item.heure_fin || '--:--'}</td>
             <td>${item.panne_travail || ''}</td>
             <td><em>${item.prestataire || ''}</em></td>
-            <td style="font-size: 0.9rem; color: #334155;"><u style="text-decoration: underline; font-weight: 600;">${signatureVal}</u></td>
             <td style="text-align: center;">${photoHtml}</td>
             <td style="text-align: center; white-space: nowrap;">
                 <button onclick="supprimerIntervention(${item.id})" style="background-color: #dc2626; padding: 6px 12px; font-size: 0.85rem; width: auto; display: inline-block; cursor: pointer;" title="Supprimer">🗑️ Suppr.</button>
@@ -461,29 +455,26 @@ function exporterPDF() {
         item.date_intervention || '',
         `${item.heure_debut || '--:--'} - ${item.heure_fin || '--:--'}`,
         item.panne_travail || '',
-        item.prestataire || '',
-        item.signature || 'Dev.Assamoi'
+        item.prestataire || ''
     ]);
 
-    // Utilisation de jspdf-autotable pour dessiner un beau tableau
+    // Utilisation de jspdf-autotable
     doc.autoTable({
         startY: 28,
-        head: [['Équipement', 'Date', 'Horaires', 'Travail / Panne', 'Prestataire', 'Signature']],
+        head: [['Équipement', 'Date', 'Horaires', 'Travail / Panne', 'Prestataire']],
         body: tableRows,
         theme: 'grid',
-        headStyles: { fillColor: [30, 41, 59] }, // Couleur sombre pro
-        styles: { fontSize: 8, cellPadding: 3 },
+        headStyles: { fillColor: [30, 41, 59] },
+        styles: { fontSize: 8, cellPadding: 4 },
         columnStyles: {
-            0: { cellWidth: 35 },
-            1: { cellWidth: 22 },
-            2: { cellWidth: 22 },
-            3: { cellWidth: 45 },
-            4: { cellWidth: 35 },
-            5: { cellWidth: 25 }
+            0: { cellWidth: 45 },
+            1: { cellWidth: 25 },
+            2: { cellWidth: 25 },
+            3: { cellWidth: 55 },
+            4: { cellWidth: 40 }
         }
     });
 
-    // Sauvegarde automatique du fichier PDF
     doc.save(`Rapport_Interventions_Carena_${new Date().toISOString().split('T')[0]}.pdf`);
     afficherNotification("📄 PDF exporté avec succès !");
 }
