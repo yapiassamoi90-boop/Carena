@@ -8,7 +8,12 @@
     <meta name="theme-color" content="#003366">
     <link rel="apple-touch-icon" href="icon-192.png">
     
+    <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- jsPDF et Plugin AutoTable pour l'exportation PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     
     <style>
         :root {
@@ -40,9 +45,9 @@
             position: absolute;
             top: 4px;
             right: 8px;
-            font-size: 0.5rem;
+            font-size: 0.6rem;
             text-decoration: underline;
-            opacity: 0.4;
+            opacity: 0.6;
             font-family: monospace;
         }
 
@@ -63,7 +68,7 @@
         }
 
         .container {
-            max-width: 900px;
+            max-width: 1000px;
             margin: 20px auto;
             background: var(--card-bg);
             padding: 20px;
@@ -128,6 +133,24 @@
             background-color: #003366;
         }
 
+        /* Barre de filtres et recherche */
+        .filtres-container {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+            align-items: flex-end;
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .filtre-item {
+            flex: 1;
+            min-width: 180px;
+        }
+
         .table-responsive {
             overflow-x: auto;
             margin-top: 15px;
@@ -136,7 +159,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 600px;
+            min-width: 750px;
         }
 
         th, td {
@@ -144,6 +167,7 @@
             padding: 10px;
             text-align: left;
             font-size: 0.9rem;
+            vertical-align: middle;
         }
 
         th {
@@ -156,11 +180,20 @@
             background-color: #f9fafb;
         }
 
-        .search-box {
-            margin-bottom: 15px;
+        /* Notification In-App */
+        #notification {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
-        @media (max-width: 600px) {
+        @media (max-width: 700px) {
             .container {
                 margin: 10px;
                 padding: 12px;
@@ -169,10 +202,17 @@
                 flex-direction: column;
                 gap: 15px;
             }
+            .filtres-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
         }
     </style>
 </head>
 <body>
+
+    <!-- Notification visuelle -->
+    <div id="notification"></div>
 
     <header>
         <div class="header-dev">Dev.ASSAMOI</div>
@@ -200,11 +240,11 @@
             <div class="form-group time-row">
                 <div style="flex: 1;">
                     <label for="heureDebut">Heure Début :</label>
-                    <input type="time" id="heureDebut" required>
+                    <input type="time" id="heureDebut">
                 </div>
                 <div style="flex: 1;">
                     <label for="heureFin">Heure Fin :</label>
-                    <input type="time" id="heureFin" required>
+                    <input type="time" id="heureFin">
                 </div>
             </div>
 
@@ -218,35 +258,65 @@
                 <input type="text" id="prestataire" placeholder="Ex: ClimServ / Jean Kouassi" required>
             </div>
 
+            <div class="form-group">
+                <label for="photoInput">Photo (optionnel) :</label>
+                <input type="file" id="photoInput" accept="image/*">
+            </div>
+
             <button type="submit">Enregistrer l'intervention</button>
         </form>
 
         <h2>Historique des Interventions</h2>
-        <div class="form-group search-box" style="margin-top: 15px;">
-            <input type="text" id="searchInput" placeholder="Rechercher dans l'historique (lieu, équipement, prestataire, panne)...">
+        
+        <!-- Bloc de Filtres (Recherche texte + Plage de dates + Export PDF) -->
+        <div class="filtres-container">
+            <div class="filtre-item" style="flex: 2;">
+                <label for="searchInput" style="font-size: 0.8rem;">Recherche rapide :</label>
+                <input type="text" id="searchInput" placeholder="Équipement, panne, prestataire...">
+            </div>
+            
+            <div class="filtre-item">
+                <label for="dateDebutFilter" style="font-size: 0.8rem;">Du :</label>
+                <input type="date" id="dateDebutFilter">
+            </div>
+
+            <div class="filtre-item">
+                <label for="dateFinFilter" style="font-size: 0.8rem;">Au :</label>
+                <input type="date" id="dateFinFilter">
+            </div>
+
+            <div style="flex: 0 0 auto;">
+                <button id="btnExportPdf" style="background-color: #0284c7; padding: 10px 16px; font-size: 0.9rem;">
+                    📥 Exporter PDF
+                </button>
+            </div>
         </div>
         
         <div class="table-responsive">
             <table id="historiqueTable">
                 <thead>
                     <tr>
-                        <th>Code & Lieu / Équipement</th>
+                        <th>Équipement / Lieu</th>
                         <th>Date</th>
-                        <th>Heures</th>
+                        <th>Horaires</th>
                         <th>Travail / Panne</th>
                         <th>Prestataire</th>
+                        <th>Signature</th>
+                        <th style="text-align: center;">Photo</th>
                         <th style="text-align: center;">Action</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr><td colspan="6" style="text-align:center; color:#777;">Chargement de l'historique...</td></tr>
+                    <tr><td colspan="8" style="text-align:center; color:#777;">Chargement de l'historique...</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 
+    <!-- Script principal de l'application (qui contient toutes les fonctions JS) -->
     <script src="app.js"></script>
 
+    <!-- Enregistrement du Service Worker pour le mode PWA -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
