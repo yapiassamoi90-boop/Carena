@@ -11,6 +11,9 @@
     <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
+    <!-- Chart.js pour les graphiques d'évolution -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <!-- jsPDF et Plugin AutoTable pour l'exportation PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
@@ -151,6 +154,46 @@
             min-width: 180px;
         }
 
+        /* Styles spécifiques pour les graphiques */
+        .chart-section {
+            margin-top: 20px;
+            margin-bottom: 25px;
+            background: #fdfdfd;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .view-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .view-buttons button {
+            padding: 8px 16px;
+            border: 1px solid #d1d5db;
+            background: #f3f4f6;
+            color: #374151;
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            width: auto;
+        }
+
+        .view-buttons button.active-view {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 280px;
+            width: 100%;
+        }
+
         .table-responsive {
             overflow-x: auto;
             margin-top: 15px;
@@ -205,6 +248,12 @@
             .filtres-container {
                 flex-direction: column;
                 align-items: stretch;
+            }
+            .view-buttons {
+                flex-direction: column;
+            }
+            .view-buttons button {
+                width: 100%;
             }
         }
     </style>
@@ -266,13 +315,13 @@
             <button type="submit">Enregistrer l'intervention</button>
         </form>
 
-        <h2>Historique des Interventions</h2>
+        <h2>Historique & Analyses</h2>
         
-        <!-- Bloc de Filtres (Recherche texte + Plage de dates + Export PDF) -->
+        <!-- Bloc de Filtres (Recherche par code/atelier/panne + Plage de dates + Export PDF) -->
         <div class="filtres-container">
             <div class="filtre-item" style="flex: 2;">
-                <label for="searchInput" style="font-size: 0.8rem;">Recherche rapide :</label>
-                <input type="text" id="searchInput" placeholder="Équipement, panne, prestataire...">
+                <label for="searchInput" style="font-size: 0.8rem;">Recherche (Code, Atelier, Panne, Prestataire) :</label>
+                <input type="text" id="searchInput" placeholder="Ex: 61001, Climatisation, Jean...">
             </div>
             
             <div class="filtre-item">
@@ -286,9 +335,27 @@
             </div>
 
             <div style="flex: 0 0 auto;">
-                <button id="btnExportPdf" style="background-color: #0284c7; padding: 10px 16px; font-size: 0.9rem;">
+                <button id="btnExportPdf" style="background-color: #0284c7; padding: 10px 16px; font-size: 0.9rem; width: auto;">
                     📥 Exporter PDF
                 </button>
+            </div>
+        </div>
+
+        <!-- SECTION GRAPHIQUES D'ÉVOLUTION (Avec Pics en couleur distincte) -->
+        <div class="chart-section">
+            <div class="view-buttons">
+                <button id="btnWeekly" class="active-view" onclick="switchChartView('weekly')">📈 Évolution par Semaine</button>
+                <button id="btnYearly" onclick="switchChartView('yearly')">📅 Évolution dans l'Année (Mensuel)</button>
+            </div>
+
+            <!-- Conteneur Graphique Hebdomadaire -->
+            <div id="weeklyContainer" class="chart-container">
+                <canvas id="weeklyChart"></canvas>
+            </div>
+
+            <!-- Conteneur Graphique Annuel -->
+            <div id="yearlyContainer" class="chart-container" style="display: none;">
+                <canvas id="yearlyChart"></canvas>
             </div>
         </div>
         
@@ -312,16 +379,14 @@
         </div>
     </div>
 
-    <!-- Script principal de l'application avec paramètre anti-cache -->
-    <script src="app.js?v=20260905-final"></script>
+    <!-- Script principal -->
+    <script src="app.js?v=20260907-peaks"></script>
 
-    <!-- Enregistrement du Service Worker pour le mode PWA -->
+    <!-- Enregistrement Service Worker -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('Service Worker enregistré avec succès:', reg.scope))
-                    .catch(err => console.log('Échec de l\'enregistrement du Service Worker:', err));
+                navigator.serviceWorker.register('./sw.js').catch(() => {});
             });
         }
     </script>
