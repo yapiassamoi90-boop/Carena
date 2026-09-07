@@ -10,21 +10,21 @@ try {
         const { createClient } = supabase;
         _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     } else {
-        console.error("❌ La bibliothèque Supabase n'est pas chargée dans le HTML !");
+        console.error("❌ La bibliothèque Supabase n'est pas chargée !");
     }
 } catch (err) {
     console.error("❌ Erreur d'initialisation Supabase :", err);
 }
 
-// Variables globales pour stocker l'historique et les données actuellement filtrées
 let historiqueGlobal = [];
 let historiqueFiltre = [];
+let weeklyChartInstance = null;
+let yearlyChartInstance = null;
 
 // ==========================================
 // LISTE COMPLÈTE DES ÉQUIPEMENTS & VILLAS (Carena)
 // ==========================================
 const equipementsList = [
-    // --- Ateliers, Bâtiments & Bureaux (61xxx) ---
     { code: "61001", nom: "61001 - Bureaux Direction Production" },
     { code: "61002", nom: "61002 - Bâtiments magasins et parc à tôles" },
     { code: "61003", nom: "61003 - Bâtiment Peinture Anticorrosion" },
@@ -56,8 +56,6 @@ const equipementsList = [
     { code: "61045", nom: "61045 - Hangar & matériel de sablage" },
     { code: "61535", nom: "61535 - Réseau eau & air" },
     { code: "61536", nom: "61536 - Réseau électrique & transformateurs" },
-
-    // --- Villas (62101 à 62120) ---
     { code: "62101", nom: "62101 - Villa n° 01" },
     { code: "62102", nom: "62102 - Villa n° 02" },
     { code: "62103", nom: "62103 - Villa n° 03" },
@@ -78,8 +76,6 @@ const equipementsList = [
     { code: "62118", nom: "62118 - Villa n° 18" },
     { code: "62119", nom: "62119 - Villa n° 19" },
     { code: "62120", nom: "62120 - Villa n° 20" },
-
-    // --- Machines & Équipements Industriels (63xxx) ---
     { code: "63001", nom: "63001 - Poste de soudure ARC" },
     { code: "63011", nom: "63011 - Groupe motopompe" },
     { code: "63012", nom: "63012 - Ventilateur extracteur d'air" },
@@ -95,16 +91,12 @@ const equipementsList = [
     { code: "63225", nom: "63225 - Pompe de détartrage KAMCO C210" },
     { code: "63536", nom: "63536 - Tour Sculfort Maxicap 129130" },
     { code: "63546", nom: "63546 - Pont roulant tour 8 (YALE- 5 Tonnes)" },
-
-    // --- Véhicules, Grues & Engins (65xxx / 77xxx) ---
     { code: "65365", nom: "65365 - RENAULT LOGAN 1.2L 7586 HA 01" },
     { code: "65366", nom: "65366 - Mitsubishi L200 184 HK 01 - Manutention" },
     { code: "65501", nom: "65501 - Grue à tour BPR n° 5 type GT 229 B" },
     { code: "65513", nom: "65513 - NACELLE ARTICULEE HAULOTTE N°1" },
     { code: "65523", nom: "65523 - CHARIOT ELEVATEUR 5 TONNES H5.OFT" },
     { code: "77060", nom: "77060 - ENTRETIEN TRANSFORMATEURS & REMPLACEMENT CELLULES" },
-
-    // --- Consommables Véhicules, Nacelles & Engins Maritimes (85xxx - 87xxx) ---
     { code: "85367", nom: "85367 - Conso. MITSUBISHI L200 936 HL 01 - ADMINISTRATION" },
     { code: "85368", nom: "85368 - Conso. RENAULT DUSTER 3388WW01 - Yann PERRET" },
     { code: "85369", nom: "85369 - Conso. RENAULT DOKKER VAN 1.5L - 8841WW01 (Supply Chain)" },
@@ -151,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('interventionForm');
     if (form) form.addEventListener('submit', enregistrerIntervention);
     
-    // Écouteurs pour la recherche instantanée et les filtres de date
+    // Écouteur de recherche (par code ou atelier)
     const searchInput = document.getElementById('searchInput');
     if (searchInput) searchInput.addEventListener('input', appliquerFiltres);
 
@@ -161,12 +153,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateFinFilter = document.getElementById('dateFinFilter');
     if (dateFinFilter) dateFinFilter.addEventListener('change', appliquerFiltres);
 
-    // Écouteur pour le bouton d'export PDF
     const btnPdf = document.getElementById('btnExportPdf');
     if (btnPdf) btnPdf.addEventListener('click', exporterPDF);
 });
 
-// Fonction pour afficher une notification visuelle in-app
+function switchChartView(view) {
+    const btnWeekly = document.getElementById('btnWeekly');
+    const btnYearly = document.getElementById('btnYearly');
+    const weeklyContainer = document.getElementById('weeklyContainer');
+    const yearlyContainer = document.getElementById('yearlyContainer');
+
+    if (view === 'weekly') {
+        btnWeekly.classList.add('active-view');
+        btnYearly.classList.remove('active-view');
+        weeklyContainer.style.display = 'block';
+        yearlyContainer.style.display = 'none';
+    } else {
+        btnYearly.classList.add('active-view');
+        btnWeekly.classList.remove('active-view');
+        yearlyContainer.style.display = 'block';
+        weeklyContainer.style.display = 'none';
+    }
+}
+
 function afficherNotification(message, type = 'succes') {
     const notif = document.getElementById('notification');
     if (!notif) return;
@@ -184,9 +193,7 @@ function afficherNotification(message, type = 'succes') {
         notif.style.border = '1px solid #f5c2c7';
     }
 
-    setTimeout(() => {
-        notif.style.display = 'none';
-    }, 5000);
+    setTimeout(() => { notif.style.display = 'none'; }, 5000);
 }
 
 function remplirSelectEquipements() {
@@ -206,7 +213,6 @@ function remplirSelectEquipements() {
 
 async function enregistrerIntervention(e) {
     e.preventDefault();
-
     if (!_supabase) {
         afficherNotification("Erreur : Base de données non connectée.", "erreur");
         return;
@@ -231,7 +237,6 @@ async function enregistrerIntervention(e) {
         try {
             photoUrlVal = await compresserImageEnBase64(file, 800, 0.7);
         } catch (err) {
-            console.warn('Compression échouée, utilisation directe :', err);
             photoUrlVal = await convertirFichierEnBase64(file);
         }
     }
@@ -247,26 +252,19 @@ async function enregistrerIntervention(e) {
     };
 
     try {
-        const { error } = await _supabase
-            .from('interventions_maintenance')
-            .insert([interventionData]);
-
+        const { error } = await _supabase.from('interventions_maintenance').insert([interventionData]);
         if (error) throw new Error(error.message);
 
         afficherNotification('✅ Intervention enregistrée avec succès !');
-        
         document.getElementById('interventionForm').reset();
         document.getElementById('dateIntervention').value = new Date().toISOString().split('T')[0];
         if (photoInput) photoInput.value = '';
         chargerHistorique();
-
     } catch (error) {
-        console.error('Erreur lors de l\'enregistrement :', error);
         afficherNotification('Erreur Supabase : ' + error.message, 'erreur');
     }
 }
 
-// Fonction de compression d'image pour optimiser la taille du Base64
 function compresserImageEnBase64(file, maxWidth = 800, quality = 0.7) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -278,20 +276,15 @@ function compresserImageEnBase64(file, maxWidth = 800, quality = 0.7) {
                 const canvas = document.createElement('canvas');
                 let width = img.width;
                 let height = img.height;
-
                 if (width > maxWidth) {
                     height = Math.round((height * maxWidth) / width);
                     width = maxWidth;
                 }
-
                 canvas.width = width;
                 canvas.height = height;
-
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
-
-                const dataUrl = canvas.toDataURL('image/jpeg', quality);
-                resolve(dataUrl);
+                resolve(canvas.toDataURL('image/jpeg', quality));
             };
             img.onerror = error => reject(error);
         };
@@ -313,7 +306,6 @@ async function chargerHistorique() {
     if (!tbody) return;
 
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#777;">Chargement de l\'historique...</td></tr>';
-
     if (!_supabase) {
         tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:red;">Erreur : Connexion Supabase absente.</td></tr>';
         return;
@@ -326,17 +318,13 @@ async function chargerHistorique() {
             .order('date_intervention', { ascending: false });
 
         if (error) throw error;
-
         historiqueGlobal = data || [];
         appliquerFiltres();
-
     } catch (error) {
-        console.error('Erreur chargement historique :', error.message);
         tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:red;">Erreur : ${error.message}</td></tr>`;
     }
 }
 
-// Fonction globale combinant la recherche textuelle et la plage de dates
 function appliquerFiltres() {
     const termeRecherche = document.getElementById('searchInput') ? document.getElementById('searchInput').value.toLowerCase().trim() : '';
     const dateDebut = document.getElementById('dateDebutFilter') ? document.getElementById('dateDebutFilter').value : '';
@@ -348,14 +336,12 @@ function appliquerFiltres() {
         const prestataire = (item.prestataire || '').toLowerCase();
         const dateIntervention = item.date_intervention || '';
 
-        // Condition texte
         const matchTexte = !termeRecherche || 
             eq.includes(termeRecherche) ||
             panne.includes(termeRecherche) ||
             prestataire.includes(termeRecherche) ||
             dateIntervention.toLowerCase().includes(termeRecherche);
 
-        // Condition dates (Plage)
         let matchDate = true;
         if (dateDebut && dateIntervention < dateDebut) matchDate = false;
         if (dateFin && dateIntervention > dateFin) matchDate = false;
@@ -364,12 +350,12 @@ function appliquerFiltres() {
     });
 
     afficherTableau(historiqueFiltre);
+    mettreAJourGraphiques(historiqueFiltre);
 }
 
 function afficherTableau(donnees) {
     const tbody = document.querySelector('#historiqueTable tbody');
     if (!tbody) return;
-
     tbody.innerHTML = '';
 
     if (donnees.length === 0) {
@@ -379,7 +365,6 @@ function afficherTableau(donnees) {
 
     donnees.forEach(item => {
         const nomEquipement = item.equipment || item.equipement || '';
-        
         let photoHtml = '<span style="color: #94a3b8; font-size: 0.85rem;">Aucune</span>';
         if (item.photo_url) {
             photoHtml = `<a href="${item.photo_url}" target="_blank"><img src="${item.photo_url}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;" title="Voir la photo"></a>`;
@@ -402,29 +387,132 @@ function afficherTableau(donnees) {
 }
 
 async function supprimerIntervention(id) {
-    if (!confirm('Voulez-vous vraiment supprimer cette intervention ?')) {
-        return;
-    }
+    if (!confirm('Voulez-vous vraiment supprimer cette intervention ?')) return;
 
     try {
-        const { error } = await _supabase
-            .from('interventions_maintenance')
-            .delete()
-            .eq('id', id);
-
+        const { error } = await _supabase.from('interventions_maintenance').delete().eq('id', id);
         if (error) throw error;
-
         afficherNotification('🗑️ Intervention supprimée avec succès !');
         chargerHistorique();
-
     } catch (error) {
-        console.error('Erreur lors de la suppression :', error);
         afficherNotification('Erreur lors de la suppression : ' + error.message, 'erreur');
     }
 }
 
 // ==========================================
-// EXPORTATION PDF (Via jsPDF & AutoTable)
+// GESTION DES GRAPHIQUES (Pics en couleur distincte)
+// ==========================================
+function mettreAJourGraphiques(dataList) {
+    if (typeof Chart === 'undefined') return;
+    mettreAJourGraphiqueHebdomadaire(dataList);
+    mettreAJourGraphiqueAnnuel(dataList);
+}
+
+function mettreAJourGraphiqueHebdomadaire(dataList) {
+    const weeklyData = {};
+    dataList.forEach(item => {
+        if (!item.date_intervention) return;
+        const date = new Date(item.date_intervention);
+        const year = date.getFullYear();
+        const weekNum = getWeekNumber(date);
+        const key = `${year}-S${String(weekNum).padStart(2, '0')}`;
+        weeklyData[key] = (weeklyData[key] || 0) + 1;
+    });
+
+    const sortedKeys = Object.keys(weeklyData).sort();
+    const labels = sortedKeys;
+    const values = sortedKeys.map(key => weeklyData[key]);
+
+    // Détection dynamique de la valeur maximale pour colorer les pics
+    const maxVal = Math.max(...values, 0);
+
+    const ctx = document.getElementById('weeklyChart').getContext('2d');
+    if (weeklyChartInstance) weeklyChartInstance.destroy();
+
+    weeklyChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Interventions par Semaine',
+                data: values,
+                borderColor: '#003366',
+                backgroundColor: 'rgba(0, 51, 102, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3,
+                // Change la couleur des points/sommets qui atteignent le pic
+                pointBackgroundColor: values.map(v => v === maxVal && maxVal > 0 ? '#ef4444' : '#003366'),
+                pointBorderColor: values.map(v => v === maxVal && maxVal > 0 ? '#b91c1c' : '#003366'),
+                pointRadius: values.map(v => v === maxVal && maxVal > 0 ? 6 : 3)
+            }]
+        },
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 } }
+            }
+        }
+    });
+}
+
+function mettreAJourGraphiqueAnnuel(dataList) {
+    const moisNoms = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+    const anneeCourante = new Date().getFullYear();
+    const totauxMensuels = new Array(12).fill(0);
+
+    dataList.forEach(item => {
+        if (!item.date_intervention) return;
+        const date = new Date(item.date_intervention);
+        if (date.getFullYear() === anneeCourante) {
+            const indexMois = date.getMonth();
+            totauxMensuels[indexMois]++;
+        }
+    });
+
+    const maxVal = Math.max(...totauxMensuels, 0);
+
+    const ctx = document.getElementById('yearlyChart').getContext('2d');
+    if (yearlyChartInstance) yearlyChartInstance.destroy();
+
+    yearlyChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: moisNoms,
+            datasets: [{
+                label: `Évolution ${anneeCourante} (Par Mois)`,
+                data: totauxMensuels,
+                borderColor: '#0055a5',
+                backgroundColor: 'rgba(0, 85, 165, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3,
+                // Changement de couleur des points au niveau des pics mensuels
+                pointBackgroundColor: totauxMensuels.map(v => v === maxVal && maxVal > 0 ? '#ef4444' : '#0055a5'),
+                pointBorderColor: totauxMensuels.map(v => v === maxVal && maxVal > 0 ? '#b91c1c' : '#0055a5'),
+                pointRadius: totauxMensuels.map(v => v === maxVal && maxVal > 0 ? 6 : 3)
+            }]
+        },
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 } }
+            }
+        }
+    });
+}
+
+function getWeekNumber(d) {
+    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
+// ==========================================
+// EXPORTATION PDF
 // ==========================================
 function exporterPDF() {
     const { jsPDF } = window.jspdf || {};
@@ -439,17 +527,14 @@ function exporterPDF() {
     }
 
     const doc = new jsPDF();
-
-    // En-tête du PDF
     doc.setFontSize(16);
-    doc.setTextColor(15, 23, 42);
+    doc.setTextColor(0, 51, 102);
     doc.text("Rapport d'Interventions - CARENA", 14, 15);
 
     doc.setFontSize(10);
     doc.setTextColor(100, 116, 139);
     doc.text(`Généré le : ${new Date().toLocaleDateString()} | Total éléments : ${historiqueFiltre.length}`, 14, 22);
 
-    // Préparation des lignes pour le tableau PDF (exactement 5 colonnes correspondantes)
     const tableRows = historiqueFiltre.map(item => [
         item.equipment || item.equipement || '',
         item.date_intervention || '',
@@ -458,13 +543,12 @@ function exporterPDF() {
         item.prestataire || ''
     ]);
 
-    // Utilisation de jspdf-autotable
     doc.autoTable({
         startY: 28,
         head: [['Équipement', 'Date', 'Horaires', 'Travail / Panne', 'Prestataire']],
         body: tableRows,
         theme: 'grid',
-        headStyles: { fillColor: [30, 41, 59] },
+        headStyles: { fillColor: [0, 51, 102] },
         styles: { fontSize: 8, cellPadding: 4 },
         columnStyles: {
             0: { cellWidth: 45 },
