@@ -307,9 +307,23 @@
                 <input type="text" id="prestataire" placeholder="Ex: ClimServ / Jean Kouassi" required>
             </div>
 
+            <!-- SECTION PHOTO MODIFIÉE AVEC APERÇU ET CAMÉRA DIRECTE -->
             <div class="form-group">
                 <label for="photoInput">Photo (optionnel) :</label>
-                <input type="file" id="photoInput" accept="image/*">
+                <input type="file" id="photoInput" accept="image/*" capture="environment" style="display: none;">
+                
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <button type="button" id="btnOuvrirCamera" style="background-color: #0f766e; width: auto; padding: 10px 15px; font-size: 0.9rem;">
+                        📷 Prendre une photo / Choisir
+                    </button>
+                    <span id="nomFichierInfo" style="font-size: 0.85rem; color: #64748b;">Aucune photo sélectionnée</span>
+                </div>
+
+                <!-- Aperçu de l'image capturée -->
+                <div id="aperçuContainer" style="margin-top: 10px; display: none;">
+                    <img id="imgApercu" src="" alt="Aperçu photo" style="max-height: 120px; border-radius: 6px; border: 1px solid #cbd5e1;">
+                    <button type="button" id="btnSupprimerPhoto" style="background-color: #dc2626; font-size: 0.75rem; padding: 4px 8px; width: auto; display: block; margin-top: 5px;">❌ Retirer la photo</button>
+                </div>
             </div>
 
             <button type="submit">Enregistrer l'intervention</button>
@@ -317,7 +331,7 @@
 
         <h2>Historique & Analyses</h2>
         
-        <!-- Bloc de Filtres (Recherche par code/atelier/panne + Plage de dates + Export PDF) -->
+        <!-- Bloc de Filtres -->
         <div class="filtres-container">
             <div class="filtre-item" style="flex: 2;">
                 <label for="searchInput" style="font-size: 0.8rem;">Recherche (Code, Atelier, Panne, Prestataire) :</label>
@@ -380,7 +394,7 @@
     </div>
 
     <!-- Script principal -->
-    <script src="app.js?v=20260907-peaks"></script>
+    <script src="app.js?v=20260907-camera"></script>
 
     <!-- Enregistrement Service Worker -->
     <script>
