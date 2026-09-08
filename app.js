@@ -155,7 +155,56 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const btnPdf = document.getElementById('btnExportPdf');
     if (btnPdf) btnPdf.addEventListener('click', exporterPDF);
+
+    // ==========================================
+    // GESTION DE LA CAMÉRA / PHOTO & APERÇU
+    // ==========================================
+    const btnOuvrirCamera = document.getElementById('btnOuvrirCamera');
+    const photoInput = document.getElementById('photoInput');
+    const btnSupprimerPhoto = document.getElementById('btnSupprimerPhoto');
+    const aperçuContainer = document.getElementById('aperçuContainer');
+    const imgApercu = document.getElementById('imgApercu');
+    const nomFichierInfo = document.getElementById('nomFichierInfo');
+
+    if (btnOuvrirCamera && photoInput) {
+        btnOuvrirCamera.addEventListener('click', () => {
+            photoInput.click(); // Ouvre directement la caméra sur mobile ou l'explorateur sur PC
+        });
+
+        photoInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                nomFichierInfo.textContent = file.name;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    imgApercu.src = event.target.result;
+                    aperçuContainer.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                reinitialiserPhotoUI();
+            }
+        });
+    }
+
+    if (btnSupprimerPhoto) {
+        btnSupprimerPhoto.addEventListener('click', () => {
+            reinitialiserPhotoUI();
+        });
+    }
 });
+
+function reinitialiserPhotoUI() {
+    const photoInput = document.getElementById('photoInput');
+    const aperçuContainer = document.getElementById('aperçuContainer');
+    const imgApercu = document.getElementById('imgApercu');
+    const nomFichierInfo = document.getElementById('nomFichierInfo');
+
+    if (photoInput) photoInput.value = '';
+    if (imgApercu) imgApercu.src = '';
+    if (aperçuContainer) aperçuContainer.style.display = 'none';
+    if (nomFichierInfo) nomFichierInfo.textContent = 'Aucune photo sélectionnée';
+}
 
 function switchChartView(view) {
     const btnWeekly = document.getElementById('btnWeekly');
@@ -258,7 +307,7 @@ async function enregistrerIntervention(e) {
         afficherNotification('✅ Intervention enregistrée avec succès !');
         document.getElementById('interventionForm').reset();
         document.getElementById('dateIntervention').value = new Date().toISOString().split('T')[0];
-        if (photoInput) photoInput.value = '';
+        reinitialiserPhotoUI();
         chargerHistorique();
     } catch (error) {
         afficherNotification('Erreur Supabase : ' + error.message, 'erreur');
@@ -400,7 +449,7 @@ async function supprimerIntervention(id) {
 }
 
 // ==========================================
-// GESTION DES GRAPHIQUES (Pics en couleur distincte)
+// GESTION DES GRAPHIQUES
 // ==========================================
 function mettreAJourGraphiques(dataList) {
     if (typeof Chart === 'undefined') return;
@@ -423,7 +472,6 @@ function mettreAJourGraphiqueHebdomadaire(dataList) {
     const labels = sortedKeys;
     const values = sortedKeys.map(key => weeklyData[key]);
 
-    // Détection dynamique de la valeur maximale pour colorer les pics
     const maxVal = Math.max(...values, 0);
 
     const ctx = document.getElementById('weeklyChart').getContext('2d');
@@ -441,7 +489,6 @@ function mettreAJourGraphiqueHebdomadaire(dataList) {
                 borderWidth: 2,
                 fill: true,
                 tension: 0.3,
-                // Change la couleur des points/sommets qui atteignent le pic
                 pointBackgroundColor: values.map(v => v === maxVal && maxVal > 0 ? '#ef4444' : '#003366'),
                 pointBorderColor: values.map(v => v === maxVal && maxVal > 0 ? '#b91c1c' : '#003366'),
                 pointRadius: values.map(v => v === maxVal && maxVal > 0 ? 6 : 3)
@@ -488,7 +535,6 @@ function mettreAJourGraphiqueAnnuel(dataList) {
                 borderWidth: 2,
                 fill: true,
                 tension: 0.3,
-                // Changement de couleur des points au niveau des pics mensuels
                 pointBackgroundColor: totauxMensuels.map(v => v === maxVal && maxVal > 0 ? '#ef4444' : '#0055a5'),
                 pointBorderColor: totauxMensuels.map(v => v === maxVal && maxVal > 0 ? '#b91c1c' : '#0055a5'),
                 pointRadius: totauxMensuels.map(v => v === maxVal && maxVal > 0 ? 6 : 3)
