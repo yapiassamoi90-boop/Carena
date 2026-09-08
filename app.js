@@ -133,7 +133,7 @@ const equipementsList = [
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
-    remplirSelectEquipements();
+    initialiserRechercheEquipements();
     chargerHistorique();
 
     const today = new Date().toISOString().split('T')[0];
@@ -143,7 +143,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('interventionForm');
     if (form) form.addEventListener('submit', enregistrerIntervention);
     
-    // Écouteur de recherche (par code ou atelier)
     const searchInput = document.getElementById('searchInput');
     if (searchInput) searchInput.addEventListener('input', appliquerFiltres);
 
@@ -156,9 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnPdf = document.getElementById('btnExportPdf');
     if (btnPdf) btnPdf.addEventListener('click', exporterPDF);
 
-    // ==========================================
-    // GESTION DE LA CAMÉRA / PHOTO & APERÇU
-    // ==========================================
+    // Gestion photo & caméra
     const btnOuvrirCamera = document.getElementById('btnOuvrirCamera');
     const photoInput = document.getElementById('photoInput');
     const btnSupprimerPhoto = document.getElementById('btnSupprimerPhoto');
@@ -168,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnOuvrirCamera && photoInput) {
         btnOuvrirCamera.addEventListener('click', () => {
-            photoInput.click(); // Ouvre le sélecteur de fichier (laisse le choix entre Caméra et Galerie)
+            photoInput.click();
         });
 
         photoInput.addEventListener('change', (e) => {
@@ -193,6 +190,55 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// ==========================================
+// SYSTÈME DE RECHERCHE INTELLIGENTE (Équipements)
+// ==========================================
+function initialiserRechercheEquipements() {
+    const inputSearch = document.getElementById('equipementSearchInput');
+    const inputHidden = document.getElementById('equipementSelect');
+    const suggestionsDiv = document.getElementById('suggestionsList');
+
+    if (!inputSearch) return;
+
+    inputSearch.addEventListener('input', function() {
+        const terme = this.value.toLowerCase().trim();
+        suggestionsDiv.innerHTML = '';
+        
+        if (terme.length === 0) {
+            suggestionsDiv.style.display = 'none';
+            inputHidden.value = '';
+            return;
+        }
+
+        const matches = equipementsList.filter(eq => eq.nom.toLowerCase().includes(terme));
+
+        if (matches.length > 0) {
+            suggestionsDiv.style.display = 'block';
+            matches.forEach(eq => {
+                const div = document.createElement('div');
+                div.textContent = eq.nom;
+                
+                div.addEventListener('click', () => {
+                    inputSearch.value = eq.nom;
+                    inputHidden.value = eq.nom;
+                    suggestionsDiv.style.display = 'none';
+                });
+                
+                suggestionsDiv.appendChild(div);
+            });
+        } else {
+            suggestionsDiv.style.display = 'none';
+        }
+    });
+
+    // Fermer les suggestions si on clique ailleurs sur la page
+    document.addEventListener('click', (e) => {
+        if (!inputSearch.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+            suggestionsDiv.style.display = 'none';
+        }
+    });
+}
 
 function reinitialiserPhotoUI() {
     const photoInput = document.getElementById('photoInput');
@@ -245,21 +291,6 @@ function afficherNotification(message, type = 'succes') {
     setTimeout(() => { notif.style.display = 'none'; }, 5000);
 }
 
-function remplirSelectEquipements() {
-    const select = document.getElementById('equipementSelect');
-    if (!select) return;
-
-    equipementsList.sort((a, b) => a.nom.localeCompare(b.nom));
-    select.innerHTML = '<option value="">-- Sélectionnez un équipement ou atelier --</option>';
-
-    equipementsList.forEach(eq => {
-        const option = document.createElement('option');
-        option.value = eq.nom;
-        option.textContent = eq.nom;
-        select.appendChild(option);
-    });
-}
-
 async function enregistrerIntervention(e) {
     e.preventDefault();
     if (!_supabase) {
@@ -276,7 +307,7 @@ async function enregistrerIntervention(e) {
     const photoInput = document.getElementById('photoInput');
 
     if (!equipementVal) {
-        afficherNotification('Veuillez sélectionner un équipement ou une villa.', 'erreur');
+        afficherNotification('Veuillez sélectionner un équipement valide dans la liste de recherche.', 'erreur');
         return;
     }
 
@@ -306,6 +337,8 @@ async function enregistrerIntervention(e) {
 
         afficherNotification('✅ Intervention enregistrée avec succès !');
         document.getElementById('interventionForm').reset();
+        document.getElementById('equipementSearchInput').value = '';
+        document.getElementById('equipementSelect').value = '';
         document.getElementById('dateIntervention').value = new Date().toISOString().split('T')[0];
         reinitialiserPhotoUI();
         chargerHistorique();
@@ -471,7 +504,6 @@ function mettreAJourGraphiqueHebdomadaire(dataList) {
     const sortedKeys = Object.keys(weeklyData).sort();
     const labels = sortedKeys;
     const values = sortedKeys.map(key => weeklyData[key]);
-
     const maxVal = Math.max(...values, 0);
 
     const ctx = document.getElementById('weeklyChart').getContext('2d');
