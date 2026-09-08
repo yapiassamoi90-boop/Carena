@@ -168,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnOuvrirCamera && photoInput) {
         btnOuvrirCamera.addEventListener('click', () => {
-            photoInput.click(); // Ouvre directement la caméra sur mobile ou l'explorateur sur PC
+            photoInput.click(); // Ouvre le sélecteur de fichier (laisse le choix entre Caméra et Galerie)
         });
 
         photoInput.addEventListener('change', (e) => {
