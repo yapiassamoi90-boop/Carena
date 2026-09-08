@@ -89,6 +89,7 @@
 
         .form-group {
             margin-bottom: 15px;
+            position: relative;
         }
 
         label {
@@ -136,6 +137,32 @@
             background-color: #003366;
         }
 
+        /* Liste des suggestions d'équipements */
+        #suggestionsList {
+            border: 1px solid var(--border-color);
+            max-height: 180px;
+            overflow-y: auto;
+            background: #fff;
+            display: none;
+            position: absolute;
+            z-index: 1000;
+            width: 100%;
+            border-radius: 0 0 4px 4px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        #suggestionsList div {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.9rem;
+        }
+
+        #suggestionsList div:hover {
+            background-color: #f8fafc;
+            color: var(--secondary-color);
+        }
+
         /* Barre de filtres et recherche */
         .filtres-container {
             display: flex;
@@ -154,7 +181,6 @@
             min-width: 180px;
         }
 
-        /* Styles spécifiques pour les graphiques */
         .chart-section {
             margin-top: 20px;
             margin-bottom: 25px;
@@ -223,7 +249,6 @@
             background-color: #f9fafb;
         }
 
-        /* Notification In-App */
         #notification {
             display: none;
             position: fixed;
@@ -260,7 +285,6 @@
 </head>
 <body>
 
-    <!-- Notification visuelle -->
     <div id="notification"></div>
 
     <header>
@@ -274,11 +298,12 @@
     <div class="container">
         <h2>Enregistrer une Intervention</h2>
         <form id="interventionForm">
+            <!-- CHAMP DE RECHERCHE INTÉGRÉ POUR ÉVITER LES PLANTAGES MÉMOIRE -->
             <div class="form-group">
-                <label for="equipementSelect">Sélectionner l'Équipement / Atelier / Villa :</label>
-                <select id="equipementSelect" required>
-                    <option value="">-- Sélectionnez un équipement ou atelier --</option>
-                </select>
+                <label for="equipementSearchInput">Sélectionner l'Équipement / Atelier / Villa :</label>
+                <input type="text" id="equipementSearchInput" placeholder="Tape un code ou un nom (ex: 61005, Chaudronnerie)..." autocomplete="off" required>
+                <input type="hidden" id="equipementSelect" name="equipement">
+                <div id="suggestionsList"></div>
             </div>
 
             <div class="form-group">
@@ -307,10 +332,9 @@
                 <input type="text" id="prestataire" placeholder="Ex: ClimServ / Jean Kouassi" required>
             </div>
 
-            <!-- SECTION PHOTO MODIFIÉE AVEC APERÇU ET CAMÉRA DIRECTE -->
             <div class="form-group">
                 <label for="photoInput">Photo (optionnel) :</label>
-                <input type="file" id="photoInput" accept="image/*" capture="environment" style="display: none;">
+                <input type="file" id="photoInput" accept="image/*" style="display: none;">
                 
                 <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                     <button type="button" id="btnOuvrirCamera" style="background-color: #0f766e; width: auto; padding: 10px 15px; font-size: 0.9rem;">
@@ -319,7 +343,6 @@
                     <span id="nomFichierInfo" style="font-size: 0.85rem; color: #64748b;">Aucune photo sélectionnée</span>
                 </div>
 
-                <!-- Aperçu de l'image capturée -->
                 <div id="aperçuContainer" style="margin-top: 10px; display: none;">
                     <img id="imgApercu" src="" alt="Aperçu photo" style="max-height: 120px; border-radius: 6px; border: 1px solid #cbd5e1;">
                     <button type="button" id="btnSupprimerPhoto" style="background-color: #dc2626; font-size: 0.75rem; padding: 4px 8px; width: auto; display: block; margin-top: 5px;">❌ Retirer la photo</button>
@@ -331,7 +354,6 @@
 
         <h2>Historique & Analyses</h2>
         
-        <!-- Bloc de Filtres -->
         <div class="filtres-container">
             <div class="filtre-item" style="flex: 2;">
                 <label for="searchInput" style="font-size: 0.8rem;">Recherche (Code, Atelier, Panne, Prestataire) :</label>
@@ -355,19 +377,16 @@
             </div>
         </div>
 
-        <!-- SECTION GRAPHIQUES D'ÉVOLUTION -->
         <div class="chart-section">
             <div class="view-buttons">
                 <button id="btnWeekly" class="active-view" onclick="switchChartView('weekly')">📈 Évolution par Semaine</button>
                 <button id="btnYearly" onclick="switchChartView('yearly')">📅 Évolution dans l'Année (Mensuel)</button>
             </div>
 
-            <!-- Conteneur Graphique Hebdomadaire -->
             <div id="weeklyContainer" class="chart-container">
                 <canvas id="weeklyChart"></canvas>
             </div>
 
-            <!-- Conteneur Graphique Annuel -->
             <div id="yearlyContainer" class="chart-container" style="display: none;">
                 <canvas id="yearlyChart"></canvas>
             </div>
@@ -393,10 +412,9 @@
         </div>
     </div>
 
-    <!-- Script principal -->
-    <script src="app.js?v=20260907-camera"></script>
+    <!-- Script principal (avec version pour forcer le rechargement sans cache) -->
+    <script src="app.js?v=20260908-search"></script>
 
-    <!-- Enregistrement Service Worker -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
