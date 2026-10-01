@@ -232,7 +232,6 @@ function initialiserRechercheEquipements() {
         }
     });
 
-    // Fermer les suggestions si on clique ailleurs sur la page
     document.addEventListener('click', (e) => {
         if (!inputSearch.contains(e.target) && !suggestionsDiv.contains(e.target)) {
             suggestionsDiv.style.display = 'none';
@@ -461,7 +460,7 @@ function afficherTableau(donnees) {
             <td><em>${item.prestataire || ''}</em></td>
             <td style="text-align: center;">${photoHtml}</td>
             <td style="text-align: center; white-space: nowrap;">
-                <button onclick="supprimerIntervention(${item.id})" style="background-color: #dc2626; padding: 6px 12px; font-size: 0.85rem; width: auto; display: inline-block; cursor: pointer;" title="Supprimer">🗑️ Suppr.</button>
+                <button onclick="supprimerIntervention('${item.id}')" style="background-color: #dc2626; padding: 6px 12px; font-size: 0.85rem; width: auto; display: inline-block; cursor: pointer;" title="Supprimer">🗑️ Suppr.</button>
             </td>
         `;
         tbody.appendChild(tr);
