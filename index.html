@@ -137,7 +137,7 @@
             background-color: #003366;
         }
 
-        /* Liste des suggestions d'équipements */
+        /* Liste des suggestions d'équipements / villas */
         #suggestionsList {
             border: 1px solid var(--border-color);
             max-height: 180px;
@@ -298,10 +298,10 @@
     <div class="container">
         <h2>Enregistrer une Intervention</h2>
         <form id="interventionForm">
-            <!-- CHAMP DE RECHERCHE INTÉGRÉ POUR ÉVITER LES PLANTAGES MÉMOIRE -->
+            <!-- CHAMP DE RECHERCHE TEXTUEL CORRIGÉ (Affiche les villas et équipements dynamiquement) -->
             <div class="form-group">
                 <label for="equipementSearchInput">Sélectionner l'Équipement / Atelier / Villa :</label>
-                <input type="text" id="equipementSearchInput" placeholder="Tape un code ou un nom (ex: 61005, Chaudronnerie)..." autocomplete="off" required>
+                <input type="text" id="equipementSearchInput" placeholder="Tape un code ou 'Villa' (ex: 62101, Villa)..." autocomplete="off" required>
                 <input type="hidden" id="equipementSelect" name="equipement">
                 <div id="suggestionsList"></div>
             </div>
