@@ -1,641 +1,766 @@
-// ==========================================
-// CONFIGURATION SUPABASE
-// ==========================================
-const SUPABASE_URL = 'https://okudbyjsfaafuiezjihm.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_qOK5Be5WMFki88iVLnDhdw_NHxkkhrC';
-
-let _supabase = null;
-try {
-    if (typeof supabase !== 'undefined') {
-        const { createClient } = supabase;
-        _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } else {
-        console.error("❌ La bibliothèque Supabase n'est pas chargée !");
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recherche Désignations & Numéros</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%);
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --primary: #2563eb;
+      --accent: #d97706;
+      --accent-bg: #fef3c7;
+      --border: #e2e8f0;
     }
-} catch (err) {
-    console.error("❌ Erreur d'initialisation Supabase :", err);
-}
 
-let historiqueGlobal = [];
-let historiqueFiltre = [];
-let weeklyChartInstance = null;
-let yearlyChartInstance = null;
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
 
-// ==========================================
-// LISTE COMPLÈTE DES ÉQUIPEMENTS & VILLAS (Carena)
-// ==========================================
-const equipementsList = [
-    { code: "61001", nom: "61001 - Bureaux Direction Production" },
-    { code: "61002", nom: "61002 - Bâtiments magasins et parc à tôles" },
-    { code: "61003", nom: "61003 - Bâtiment Peinture Anticorrosion" },
-    { code: "61005", nom: "61005 - Bâtiment Chaudronnerie" },
-    { code: "61006", nom: "61006 - Bâtiment Nettoyage Industriel" },
-    { code: "61009", nom: "61009 - Bâtiment Menuiserie" },
-    { code: "61010", nom: "61010 - Bâtiment Services Généraux et entretien" },
-    { code: "61011", nom: "61011 - GUICHET EXPRESS CARENA - 2016" },
-    { code: "61015", nom: "61015 - Bâtiment Mécanique Bord" },
-    { code: "61016", nom: "61016 - Bâtiment Maintenance" },
-    { code: "61017", nom: "61017 - Direction Générale - Frais généraux" },
-    { code: "61018", nom: "61018 - Direction Financière - Frais généraux" },
-    { code: "61019", nom: "61019 - Service Informatique - Frais généraux" },
-    { code: "61020", nom: "61020 - Direction des Ressources Humaines - Frais généraux" },
-    { code: "61021", nom: "61021 - Centre médical CARENA" },
-    { code: "61022", nom: "61022 - SERVICE QHSSE - Frais généraux" },
-    { code: "61024", nom: "61024 - Parc à tôles N°2" },
-    { code: "61025", nom: "61025 - Bâtiment Electricité" },
-    { code: "61026", nom: "61026 - Bureaux Administration" },
-    { code: "61028", nom: "61028 - Hangar Mag. Bois" },
-    { code: "61030", nom: "61030 - Quais" },
-    { code: "61031", nom: "61031 - Bâtiment Machine-Outils" },
-    { code: "61032", nom: "61032 - Bâtiment Tuyauterie" },
-    { code: "61036", nom: "61036 - Bâtiment Manutention-Levage" },
-    { code: "61037", nom: "61037 - QUAI SAN PEDRO" },
-    { code: "61038", nom: "61038 - Bureaux San Pedro" },
-    { code: "61041", nom: "61041 - Bâtiment atelier sauvetage" },
-    { code: "61042", nom: "61042 - Hangar Cidex" },
-    { code: "61045", nom: "61045 - Hangar & matériel de sablage" },
-    { code: "61535", nom: "61535 - Réseau eau & air" },
-    { code: "61536", nom: "61536 - Réseau électrique & transformateurs" },
-    { code: "62101", nom: "62101 - Villa n° 01" },
-    { code: "62102", nom: "62102 - Villa n° 02" },
-    { code: "62103", nom: "62103 - Villa n° 03" },
-    { code: "62104", nom: "62104 - Villa n° 04" },
-    { code: "62105", nom: "62105 - Villa n° 05" },
-    { code: "62106", nom: "62106 - Villa n° 06" },
-    { code: "62107", nom: "62107 - Villa n° 07" },
-    { code: "62108", nom: "62108 - Villa n° 08" },
-    { code: "62109", nom: "62109 - Villa n° 09" },
-    { code: "62110", nom: "62110 - Villa n° 10" },
-    { code: "62111", nom: "62111 - Villa n° 11" },
-    { code: "62112", nom: "62112 - Villa n° 12" },
-    { code: "62113", nom: "62113 - Villa n° 13" },
-    { code: "62114", nom: "62114 - Villa n° 14" },
-    { code: "62115", nom: "62115 - Villa n° 15" },
-    { code: "62116", nom: "62116 - Villa n° 16" },
-    { code: "62117", nom: "62117 - Villa n° 17" },
-    { code: "62118", nom: "62118 - Villa n° 18" },
-    { code: "62119", nom: "62119 - Villa n° 19" },
-    { code: "62120", nom: "62120 - Villa n° 20" },
-    { code: "63001", nom: "63001 - Poste de soudure ARC" },
-    { code: "63011", nom: "63011 - Groupe motopompe" },
-    { code: "63012", nom: "63012 - Ventilateur extracteur d'air" },
-    { code: "63035", nom: "63035 - POSTE DE SOUDURE TIG" },
-    { code: "63043", nom: "63043 - POSTES DE SOUDURE SEMI AUTO" },
-    { code: "63065", nom: "63065 - POMPE GRACXTREME" },
-    { code: "63073", nom: "63073 - FONTAINE REFRIGERANTE - Tuyauterie" },
-    { code: "63075", nom: "63075 - CHAUFFE EAU POUR POMPE - Nettoyage Industriel" },
-    { code: "63100", nom: "63100 - KARCHER HDS 10/20-4 M 200B 380V" },
-    { code: "63220", nom: "63220 - POSTE A SOUDER SAFEX C2 N°1" },
-    { code: "63221", nom: "63221 - POSTE A SOUDER SAFEX C2 N°2" },
-    { code: "63222", nom: "63222 - NETTOYEUR HP EAU CHAUDE HDS SUPER" },
-    { code: "63225", nom: "63225 - Pompe de détartrage KAMCO C210" },
-    { code: "63536", nom: "63536 - Tour Sculfort Maxicap 129130" },
-    { code: "63546", nom: "63546 - Pont roulant tour 8 (YALE- 5 Tonnes)" },
-    { code: "65365", nom: "65365 - RENAULT LOGAN 1.2L 7586 HA 01" },
-    { code: "65366", nom: "65366 - Mitsubishi L200 184 HK 01 - Manutention" },
-    { code: "65501", nom: "65501 - Grue à tour BPR n° 5 type GT 229 B" },
-    { code: "65513", nom: "65513 - NACELLE ARTICULEE HAULOTTE N°1" },
-    { code: "65523", nom: "65523 - CHARIOT ELEVATEUR 5 TONNES H5.OFT" },
-    { code: "77060", nom: "77060 - ENTRETIEN TRANSFORMATEURS & REMPLACEMENT CELLULES" },
-    { code: "85367", nom: "85367 - Conso. MITSUBISHI L200 936 HL 01 - ADMINISTRATION" },
-    { code: "85368", nom: "85368 - Conso. RENAULT DUSTER 3388WW01 - Yann PERRET" },
-    { code: "85369", nom: "85369 - Conso. RENAULT DOKKER VAN 1.5L - 8841WW01 (Supply Chain)" },
-    { code: "85375", nom: "85375 - Conso DUSTER WWW6629CI01 DAC44587 (LAMAISON)" },
-    { code: "85503", nom: "85503 - Consom. grue mobile" },
-    { code: "85504", nom: "85504 - Consom. fourchette Cat." },
-    { code: "85506", nom: "85506 - Conso. GRUE FLOTTANTE PIC-BOEUF" },
-    { code: "85507", nom: "85507 - Conso. GRUE A TOUR N°5 TEREX" },
-    { code: "85512", nom: "85512 - Conso NACELLE HAULOTTE N°4 HA18PX (Peinture)" },
-    { code: "85513", nom: "85513 - CONSO NACELLE ARTICULEE HAULOTTE N°1" },
-    { code: "85514", nom: "85514 - Conso CHARIOT ELEVATEUR HYSTER H7" },
-    { code: "85515", nom: "85515 - Conso. Chariot élévateur Hyster H3.OFT" },
-    { code: "85517", nom: "85517 - Conso MITSUBISHI PICK UP - 5984 GP 01 (Administration)" },
-    { code: "85519", nom: "85519 - Conso NACELLE HAULOTTE N°2 (2015)" },
-    { code: "85520", nom: "85520 - Conso NACELLE HAULOTTE N°3 (2015)" },
-    { code: "85521", nom: "85521 - Conso PEUGEOT 2008 4x2 (2015 - F. BLEDOU)" },
-    { code: "85522", nom: "85522 - Conso MITSUBISHI L200 184 GV 01 (2015 - MAGASIN)" },
-    { code: "85523", nom: "85523 - Conso. CHARIOT ELEVATEUR 5 TONNES H5.OFT - 4000 MM (2015)" },
-    { code: "85524", nom: "85524 - Conso. CHARIOT ELEVATEUR 5 TONNES H5.OFT - 6000 MM (2015)" },
-    { code: "85525", nom: "85525 - Conso CHARIOT ELEVATEUR HYSTER H3 FORTENS" },
-    { code: "85526", nom: "85526 - CONSO. CHARIOT ELEVATEUR HYSTER H7.OFT de 7 tonnes" },
-    { code: "87000", nom: "87000 - Consom. compresseur Bauer plongeurs" },
-    { code: "87017", nom: "87017 - Conso. 4e Dock flottant 10 800 tonnes" },
-    { code: "87024", nom: "87024 - Consom. dock flottant 2 000 tonnes" },
-    { code: "87032", nom: "87032 - Consom. remorqueur Mossi" },
-    { code: "87035", nom: "87035 - Consom. vedette Guere" },
-    { code: "87038", nom: "87038 - Conso. PONTONS INCENDIE - HSE" },
-    { code: "87040", nom: "87040 - Consom. dock 10 000 tonnes" },
-    { code: "87042", nom: "87042 - Consom. ponton et grue flottante" },
-    { code: "87047", nom: "87047 - Consom. vedette Samba" },
-    { code: "87048", nom: "87048 - Consom. vedette Gbele" },
-    { code: "87068", nom: "87068 - Conso. Remorqueur Ebra" },
-    { code: "87072", nom: "87072 - Consom. remorqueur Abroka" }
-];
+    body {
+      background: var(--bg-gradient);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 1.5rem 1rem;
+      background-attachment: fixed;
+    }
 
-document.addEventListener('DOMContentLoaded', () => {
-    initialiserRechercheEquipements();
-    chargerHistorique();
+    header {
+      width: 100%;
+      max-width: 600px;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
 
-    const today = new Date().toISOString().split('T')[0];
-    const dateField = document.getElementById('dateIntervention');
-    if (dateField) dateField.value = today;
+    header h1 {
+      font-size: 1.6rem;
+      color: #ffffff;
+      margin-bottom: 0.25rem;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
 
-    const form = document.getElementById('interventionForm');
-    if (form) form.addEventListener('submit', enregistrerIntervention);
-    
+    .signature {
+      font-size: 0.85rem;
+      color: #93c5fd;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+
+    .search-box {
+      width: 100%;
+      max-width: 600px;
+      position: sticky;
+      top: 1rem;
+      z-index: 10;
+      margin-bottom: 0.5rem;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 1rem 1.2rem;
+      font-size: 1.1rem;
+      border-radius: 14px;
+      border: none;
+      background-color: var(--card-bg);
+      color: var(--text);
+      outline: none;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+      transition: all 0.2s ease;
+    }
+
+    input[type="text"]:focus {
+      box-shadow: 0 15px 30px -5px rgba(37, 99, 235, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .stats {
+      margin: 0.5rem 0 1rem 0;
+      font-size: 0.9rem;
+      color: #e2e8f0;
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      justify-content: space-between;
+      font-weight: 500;
+    }
+
+    .results-list {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      padding: 1.1rem;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-code {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--accent);
+      background-color: var(--accent-bg);
+      padding: 0.4rem 0.8rem;
+      border-radius: 8px;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+
+    .card-caption {
+      font-size: 0.95rem;
+      padding-right: 0.75rem;
+      line-height: 1.4;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .no-result {
+      text-align: center;
+      padding: 2.5rem;
+      color: #f1f5f9;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      backdrop-filter: blur(5px);
+      font-size: 1rem;
+    }
+
+    .highlight {
+      background-color: #fde047;
+      color: #854d0e;
+      padding: 0 3px;
+      border-radius: 3px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Commandes & Désignations</h1>
+    <div class="signature">Dev.Assamoi</div>
+  </header>
+
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="Tapez un numéro ou un nom (ex: 85367, Conso...)..." autocomplete="off" autofocus>
+  </div>
+
+  <div class="stats">
+    <span id="resultCount">Chargement...</span>
+  </div>
+
+  <div class="results-list" id="resultsList"></div>
+
+  <script>
+    // Base de données complète intégrée (Fiches 1 à 11)
+    const items = [
+      { code: "61001", caption: "Bureaux Direction Production" },
+      { code: "61002", caption: "Bâtiments magasins et parc à tôles" },
+      { code: "61003", caption: "BATIMENT Peinture Anticorrosion" },
+      { code: "61004", caption: "Bâtiment Chaudronnerie" },
+      { code: "61005", caption: "Bâtiment - Nettoyage Industriel" },
+      { code: "61006", caption: "Bâtiment Menuiserie" },
+      { code: "61008", caption: "Bâtiment Services généraux et entretien" },
+      { code: "61009", caption: "GUICHET EXPRESS CARENA - 2016" },
+      { code: "61011", caption: "Bâtiment Mécanique Bord" },
+      { code: "61015", caption: "Bâtiment Maintenance" },
+      { code: "61016", caption: "Direction Générale - Frais généraux" },
+      { code: "61017", caption: "Direction Financière - Frais généraux" },
+      { code: "61018", caption: "Service Informatique - Frais généraux" },
+      { code: "61019", caption: "Direction des Ressources Humaines - Frais généraux" },
+      { code: "61020", caption: "Centre médical CARENA" },
+      { code: "61021", caption: "SERVICE QHSSE - Frais généraux" },
+      { code: "61022", caption: "Parc à tôles N°2" },
+      { code: "61024", caption: "Bâtiment Electricité" },
+      { code: "61025", caption: "Bureaux Administration" },
+      { code: "61026", caption: "Hangar Mag. Bois" },
+      { code: "61028", caption: "Quais" },
+      { code: "61030", caption: "Bâtiment Machine-Outils" },
+      { code: "61031", caption: "Bâtiment Tuyauterie" },
+      { code: "61032", caption: "Bâtiment Manutention-Levage" },
+      { code: "61036", caption: "QUAI SAN PEDRO" },
+      { code: "61037", caption: "Bureaux San Pedro" },
+      { code: "61038", caption: "Bâtiment atelier sauvetage" },
+      { code: "61041", caption: "Hangar Tidex" },
+      { code: "61042", caption: "Hangar & matériel de sablage" },
+      { code: "61045", caption: "Confection clôture et portail" },
+      { code: "61535", caption: "Réseau eau & air" },
+      { code: "61536", caption: "Réseau électrique & transformateurs" },
+      { code: "61537", caption: "Peinture voiries et Bâtiments Chantiers" },
+      { code: "61541", caption: "DETERIES CHANTIER" },
+      { code: "62101", caption: "Villa n° 01" },
+      { code: "62102", caption: "Villa n° 02" },
+      { code: "62103", caption: "Villa n° 03" },
+      { code: "62105", caption: "Villa n° 05" },
+      { code: "62106", caption: "Villa n° 06" },
+      { code: "62107", caption: "Villa n° 07" },
+      { code: "62108", caption: "Villa n° 08" },
+      { code: "62111", caption: "Villa n° 11" },
+      { code: "62112", caption: "Villa n° 12" },
+      { code: "62113", caption: "Villa n° 13" },
+      { code: "62116", caption: "Villa n° 16" },
+      { code: "62118", caption: "Villa n° 18" },
+      { code: "62119", caption: "Villa n° 19" },
+      { code: "62120", caption: "Villa n° 20" },
+      { code: "62121", caption: "VILLA CONCESSION PACOCI" },
+      { code: "62122", caption: "Studio N°17" },
+      { code: "62124", caption: "BATIMENT INFIRMERIE SALLE DELEGUES" },
+      { code: "62125", caption: "Bloc social - Vestiaires / Santuaire" },
+      { code: "62127", caption: "Cantine CARENA" },
+      { code: "62129", caption: "Concession CARENA" },
+      { code: "62201", caption: "Villa Cocody Ambassade" },
+      { code: "62211", caption: "Concession Assinie Máfia" },
+      { code: "62212", caption: "Concession Assinie Terminal" },
+      { code: "62219", caption: "AMENAGEMENT CLOTURE VILLA COCODY" },
+      { code: "62221", caption: "Studios clients" },
+      { code: "62227", caption: "AMENAGEMENT BUREAU ADMINISTRATIF" },
+      { code: "62234", caption: "REPARATIONS CHARPENTE ATELIER CHAUDRONNERIE" },
+      { code: "62236", caption: "RENFORCEMENT AUVENT ATELIER CHAUDRONNERIE" },
+      { code: "62238", caption: "AMENAGEMENT SALLE DE REUNION" },
+      { code: "62241", caption: "TRAVAUX RESEAU ELECTRIQUE CHANTIER" },
+      { code: "62258", caption: "CONTAINER ECOLE CARENA N°1" },
+      { code: "62259", caption: "CONTAINER ECOLE CARENA N°2" },
+      { code: "62285", caption: "LOCAL ATELIER ABB" },
+      { code: "62500", caption: "Concession Locodjoro" },
+      { code: "62507", caption: "Longchamp appt 7ème étage" },
+      { code: "62508", caption: "VILLA COCODY AMBASSADE" },
+      { code: "63000", caption: "Poste de soudure ARC" },
+      { code: "63008", caption: "Lot pieces tour Cazeneuve" },
+      { code: "63011", caption: "Groupe motopompe" },
+      { code: "63012", caption: "Ventilateur extracteur d'air - Gaine de ventilation - Net. Indus." },
+      { code: "63030", caption: "Chariot Palan Monorail Ekdr Com 3-3" },
+      { code: "63031", caption: "Chariot Palan Monorail Ekdr Com 3-3" },
+      { code: "63035", caption: "POSTE DE SOUDURE TIG" },
+      { code: "63043", caption: "POSTES DE SOUDURE SEMI AUTO" },
+      { code: "63060", caption: "REMISE EN ETAT ALESEUSE CORNAC" },
+      { code: "63061", caption: "BALANCE ELECTRONIQUE KERN" },
+      { code: "63065", caption: "POMPE GRAC XTREME" },
+      { code: "63067", caption: "PALAN 3TONNES 3M HSZ" },
+      { code: "63068", caption: "PALAN 3 TONNES 3M HSZ" },
+      { code: "63069", caption: "TRAVAUX TOUR PETROLIER SCULFORT & CAZENEUVE" },
+      { code: "63073", caption: "FONTAINE REFRIGERANTE - Tuyauterie" },
+      { code: "63075", caption: "CHAUFFE EAU POUR POMPE- Nettoyage Industriel" },
+      { code: "63076", caption: "MARTEAU PIQUEUR" },
+      { code: "63077", caption: "Groupe Electrogène Dorman" },
+      { code: "63078", caption: "COMPRESSEUR AIR IR ROTHARY R1321U 8.5" },
+      { code: "63079", caption: "GROUPE ELECT GM V8 5887 440V/60Hz 220kva" },
+      { code: "63080", caption: "DYNAMOMETRE EXCEL 5 TONNES" },
+      { code: "63081", caption: "Ventilateur électrique FALCH - BASE FAN 15" },
+      { code: "63082", caption: "Raboteuse Guillet de 700" },
+      { code: "63083", caption: "CONSOMMABLES MIG (prolongateur, pince de masse, torche, manomètre)" },
+      { code: "63084", caption: "CONSOMMABLES ARC (prolongateur, pince à souder, pince de masse)" },
+      { code: "63085", caption: "CONSOMMABLES POSTES TIG (torche tig, torche, Manomètre, pince de masse)" },
+      { code: "63086", caption: "CONSOMMABLES POSTES PLASMA (torche plasma, pince de masse)" },
+      { code: "63087", caption: "FOURNITURES GAZ OXY ET AD" },
+      { code: "63088", caption: "CONSOMMABLES CHANFREINEUSE" },
+      { code: "63089", caption: "ENTRETIEN VELOS" },
+      { code: "63090", caption: "BOYAU OXY / AD ET MANOMETRE" },
+      { code: "63091", caption: "CABLE DE SOUDURE" },
+      { code: "63092", caption: "EPI (lunette, bouchon, boléro, gant, guêtre...)" },
+      { code: "63093", caption: "BACHE DE PROTECTION THERMIQUE" },
+      { code: "63094", caption: "CONSOMMABLES TABLE PLASMA" },
+      { code: "63095", caption: "SCIE A RUBAN BTM (DAC 16248)" },
+      { code: "63096", caption: "TOUR CAZENEUVE OPTIMAX 50 (DAC N°16877)" },
+      { code: "63097", caption: "Soudeuse par point (DAC N°21198)" },
+      { code: "63098", caption: "Aspirateur mobile KEMPER (DAC N°23753)" },
+      { code: "63099", caption: "ROULEUSE BAILEIGH (DAC N°16267)" },
+      { code: "63100", caption: "SCIE ALTERNATIVE KASTO (DAC N°21197)" },
+      { code: "63101", caption: "KARCHER HDS 10/20-4 M 200B 380V (MECA BORD)" },
+      { code: "63102", caption: "SCIE A RUBAN ATELIER MENUISERIE (DAC 56108)" },
+      { code: "63110", caption: "Scie alternative VH X 320 1.8kv" },
+      { code: "63112", caption: "POMPE N°1 CM65-200A 400/690-50 30CV - 08/2012" },
+      { code: "63130", caption: "Mortaiseuse Saelfort" },
+      { code: "63158", caption: "TRONCONNEUSE TV 350 - Chaudronnerie" },
+      { code: "63162", caption: "REGULATEUR ORTEA 30KVA OXYTOME - Chaudronnerie" },
+      { code: "63166", caption: "TABLE PLASMA CNC CUTTING" },
+      { code: "63172", caption: "Pompe Centrifuge PENTAX CM65-200A - 2013" },
+      { code: "63173", caption: "Pompe Centrifuge AZCUE MN50-200 - 2013" },
+      { code: "63175", caption: "COMPRESSEUR COMPAIR L 132 (DAC 38689)" },
+      { code: "63176", caption: "Scie à ruban" },
+      { code: "63179", caption: "Scie circulaire" },
+      { code: "63188", caption: "SYSTEME D'ASPIRATION NORBLAST VR55" },
+      { code: "63190", caption: "Déglaçeuse de chemises Grinfing" },
+      { code: "63200", caption: "ENTRETIEN VELO - TUYAUTERIE" },
+      { code: "63201", caption: "BOYAU OXY / AD ET MANOMETRE - TUYAUTERIE" },
+      { code: "63202", caption: "CABLE DE SOUDURE - TUYAUTERIE" },
+      { code: "63203", caption: "AUTOLAVEUSE BR3512 (2015)" },
+      { code: "63204", caption: "APPAREIL A JET D'EAU AQUA SPEED 1100W (2015)" },
+      { code: "63205", caption: "POMPE NXT XTREME N°1 (2015)" },
+      { code: "63206", caption: "POMPE NXT XTREME N°2 (2015)" },
+      { code: "63207", caption: "GROUPE DE FILTRATION UFM050 (2015)" },
+      { code: "63208", caption: "EPI (lunette, bouchon, boléro, gant, guêtre...) - Tuyauterie" },
+      { code: "63209", caption: "CONSOMMABLE MEULEUSE DROITE - TUYAUTERIE" },
+      { code: "63220", caption: "POSTE A SOUDER SAFEX C2 N°1- 2016" },
+      { code: "63221", caption: "POSTE A SOUDER SAFEX C2 N°2 - 2016" },
+      { code: "63222", caption: "NETTOYEUR HP EAU CHAUDE HDS SUPER" },
+      { code: "63223", caption: "POMPE WILDEN PNEUMATIQUE N°1 - 2016" },
+      { code: "63224", caption: "POMPE WILDEN PNEUMATIQUE N°2 - 2016" },
+      { code: "63225", caption: "Pompe de détartrage KAMCO C210" },
+      { code: "63227", caption: "POMPE A INCENDIE HAKA (DAC N°28883)" },
+      { code: "63231", caption: "Presse plieuse Promecam" },
+      { code: "63236", caption: "POSTE A SOUDER BIG RED 500 - 2017" },
+      { code: "63237", caption: "Transformateur et accessoires" },
+      { code: "63255", caption: "Cisailles guillotine" },
+      { code: "63256", caption: "PETITE CISAILLE 63225" },
+      { code: "63284", caption: "Tour Cazeneuve type 725 EP 6 0000" },
+      { code: "63285", caption: "Tour Cazeneuve type 575 EP 3 000" },
+      { code: "63295", caption: "Machine à scier à ruban univers" },
+      { code: "63298", caption: "SCIE A RUBAN" },
+      { code: "63299", caption: "Machine à fraiser Huron KV 6" },
+      { code: "63301", caption: "NETTOYEUR HP AQUA SPEED 1100W" },
+      { code: "63303", caption: "NETTOYEUR HP AQUA SPEED 1100W" },
+      { code: "63304", caption: "NETTOYEUR HP AQUA SPEED 1100W" },
+      { code: "63308", caption: "NETTOYEUR HP AQUA SPEED 1100W" },
+      { code: "63309", caption: "NETTOYEUR HP AQUA SPEED 1100W" },
+      { code: "63315", caption: "Raboteuse de 600" },
+      { code: "63327", caption: "Tour Cazeneuve type 575 EP 1 500" },
+      { code: "63351", caption: "Presse hydraulique Matra" },
+      { code: "63355", caption: "Tour Cazeneuve type 725 EP 2 000" },
+      { code: "63357", caption: "Cintreuse à tube" },
+      { code: "63365", caption: "Aleseuse Pegard" },
+      { code: "63373", caption: "Tronçonneuse" },
+      { code: "63393", caption: "Tour Cazeneuve type 575 15206" },
+      { code: "63403", caption: "SEPARATEUR D'HYDROCARBURE POLYETHYLENE" },
+      { code: "63404", caption: "MODULE DE CHAUFFAGE FALCH" },
+      { code: "63405", caption: "AERO GOMMEUSE COLIBRI - 2016" },
+      { code: "63410", caption: "POMPE CENTRIFUGE GM60 (AZCUE) -2016" },
+      { code: "63422", caption: "AFFUTEUSE VOLLNER TYPE BME" },
+      { code: "63430", caption: "Fraiseuse MU 6" },
+      { code: "63432", caption: "Toupie Chambon type 317" },
+      { code: "63433", caption: "Tour Cazeneuve type 575 EP 1 000" },
+      { code: "63441", caption: "Scie à ruban Winter D900 (Menuiserie)" },
+      { code: "63448", caption: "Dégauchisseuse Sky 995" },
+      { code: "63449", caption: "Mortaiseuse à chaîne 496" },
+      { code: "63454", caption: "Mortaiseuse Dutrannoit type 400" },
+      { code: "63484", caption: "Tour Cazeneuve type 575 EP 2 000" },
+      { code: "63485", caption: "RECTIFIEUSE PLANE ELBE" },
+      { code: "63514", caption: "Poste soudure Safex 22 775" },
+      { code: "63522", caption: "Perceuse GSP M 40 K 150" },
+      { code: "63534", caption: "Tour Cazeneuve type 575 19 309" },
+      { code: "63535", caption: "Tour Cazeneuve type 725 EP 3 000" },
+      { code: "63536", caption: "Tour Sculfort Maxicap 129130" },
+      { code: "63546", caption: "Pont roulant tour 8 (YALE- 5 Tonnes)" },
+      { code: "63556", caption: "Slip 80 tonnes" },
+      { code: "63558", caption: "Slip 300 tonnes" },
+      { code: "63609", caption: "Pompe HP Atumat type 150-P40 2000 t." },
+      { code: "63610", caption: "MACHINE A DECOUPER LES JOINTS" },
+      { code: "63614", caption: "Presse plieuse LVD" },
+      { code: "63615", caption: "Poste soudage buffalo 500 DC" },
+      { code: "63619", caption: "VERIN HYDRAULIQUE YS-70/150 - 2016" },
+      { code: "63620", caption: "MALAXEUR COLLOMIX XO 55 DUO - 2016" },
+      { code: "63621", caption: "MACHINE A POMPER ET A GACHER POLYVALENTE -2016" },
+      { code: "63622", caption: "SYSTEME FIXTURLASER NXA Géo Full - 2016" },
+      { code: "63628", caption: "Grande rouleuse hydraulique" },
+      { code: "63630", caption: "Portique roulant Verlinde 10 tonnes" },
+      { code: "63631", caption: "Scie alternative Uniz" },
+      { code: "63632", caption: "Tour Demoor type 8 255 360 EP 300" },
+      { code: "63635", caption: "POMPE UHP N°4" },
+      { code: "63636", caption: "POMPE UHP N°5" },
+      { code: "63647", caption: "Combiné dégauchisseuse rabot" },
+      { code: "63650", caption: "Cisaille guillotine Comessa" },
+      { code: "63671", caption: "Matériel hydraulique de levage" },
+      { code: "63677", caption: "Poinçonneuse" },
+      { code: "63680", caption: "Groupe soudure Hobart" },
+      { code: "63685", caption: "Tour Geminis" },
+      { code: "63702", caption: "POMPE CENTRIFUGE KSB CPKC1 50-315 (2013)" },
+      { code: "63703", caption: "POMPE CENTRIFUGE AZCUE AN65-250 (2013)" },
+      { code: "63704", caption: "POMPE CENTRIFUGE PEDROLO F50/200A - 2014" },
+      { code: "63705", caption: "POMPE CENTRIFUGE AZCUE MN50-200 - 2016" },
+      { code: "63710", caption: "POMPE CENTRIFUGE MONOBLOC IBERMAT MN50-250 N°1 (DOCK 11 000T)" },
+      { code: "63711", caption: "POMPE CENTRIFUGE MONOBLOC IBERMAT MN50-250 N°2 (DOCK 11 000T)" },
+      { code: "63725", caption: "Groupe électrogène Caterpillar" },
+      { code: "63726", caption: "Groupe électrogène Caterpillar" },
+      { code: "63727", caption: "G.E CATERPILLAR 300 KVA DOCK 10 000 T" },
+      { code: "63729", caption: "Grue Liebher n° 6" },
+      { code: "63730", caption: "RESERVOIR D'AIR COMPRIME" },
+      { code: "63735", caption: "Pompe Woma 10 000 t." },
+      { code: "63764", caption: "Groupe électrogène SMB mobile 220 v." },
+      { code: "63767", caption: "Transfo 630 kva 15 kv b 2" },
+      { code: "63770", caption: "Groupe électrogène (ex-informatique)" },
+      { code: "63774", caption: "Grue à tour Liebherr n° 3" },
+      { code: "63779", caption: "Pompe Draco 218-174" },
+      { code: "63794", caption: "Groupe motopompe Richier P 200" },
+      { code: "63795", caption: "Four à sable n° 01" },
+      { code: "63796", caption: "Four à sable n° 02" },
+      { code: "63800", caption: "Perceuse à colonne" },
+      { code: "63801", caption: "Poinçonneuse" },
+      { code: "63803", caption: "Outillage S.I.R" },
+      { code: "63804", caption: "Poste distribution gas-oil & citernes" },
+      { code: "63812", caption: "POMPE UHP N°1" },
+      { code: "63813", caption: "Aleseuse Cornac" },
+      { code: "63814", caption: "Transfo 160 KVA" },
+      { code: "63816", caption: "POMPE WILDEN - Nettoyage Industriel" },
+      { code: "63817", caption: "POMPE INCENDIE" },
+      { code: "63828", caption: "RECTIFIEUSE DE SIEGE DE CULASSES HUNGER" },
+      { code: "63834", caption: "Compresseur Ingersoll Rand" },
+      { code: "63838", caption: "COMPRESSEUR ATLAS COPCO" },
+      { code: "63839", caption: "Pont roulant 12,5T." },
+      { code: "63842", caption: "SCIE VERTICALE A RUBAN" },
+      { code: "63844", caption: "EUROULEUR DE CABLE HYDRAULIQUE" },
+      { code: "63848", caption: "Réseau distr. oxygène acétylène" },
+      { code: "63849", caption: "Scie à métaux alternative" },
+      { code: "63850", caption: "Perceuse à colonne" },
+      { code: "63852", caption: "Presse 150 T. Stenhoj" },
+      { code: "63854", caption: "Fraiseuse Ernault Somua Z 1 C" },
+      { code: "63855", caption: "Perceuse Tago 1 600" },
+      { code: "63859", caption: "Grue à tour N°2 Liebher" },
+      { code: "63860", caption: "Ponts roulants 6,5 t." },
+      { code: "63863", caption: "LOT ECHAFAUDAGE" },
+      { code: "63869", caption: "Pompe Guignard" },
+      { code: "63870", caption: "Poste à souder GYS ARC 400 TRI N°42191 (DAC 55830)" },
+      { code: "63871", caption: "Poste à souder GYS ARC 400 TRI N°42192 (DAC 55830)" },
+      { code: "63872", caption: "Poste à souder GYS ARC 400 TRI N°42193 (DAC 55830)" },
+      { code: "63873", caption: "Poste à souder GYS ARC 400 TRI N°42194 (DAC 55830)" },
+      { code: "63879", caption: "Palan monorail 2 t." },
+      { code: "63885", caption: "POMPE CM65-200A - 05/2012" },
+      { code: "63895", caption: "PESE ESSIEUX" },
+      { code: "63897", caption: "DEPOUSSIREUR DEP CAP 20KW" },
+      { code: "63915", caption: "GROUPE ELECTROGENE CATERPILLAR 3406" },
+      { code: "63937", caption: "Pistolet Hilti" },
+      { code: "63941", caption: "Groupe électrogène CUMMINS 50KVA 60HZ" },
+      { code: "63945", caption: "Pont roulant CCP-KONE 5 Tonnes" },
+      { code: "63959", caption: "Pompe Centrifuge AZCUE MN50-200 - 2014" },
+      { code: "63960", caption: "Pompe centrifuge de réfrigération AZCUE" },
+      { code: "63962", caption: "PALAN ELECTRIQUE TS 5T TRIPHASE - Sauvetage" },
+      { code: "63963", caption: "Tour Ernault Somua" },
+      { code: "63964", caption: "Groupe électrogène Wilson 166 kva" },
+      { code: "63976", caption: "Mesureur d'épaisseur ultra-son" },
+      { code: "63981", caption: "Poste soudure autonome Genset" },
+      { code: "63984", caption: "Poste à découper PLASMA" },
+      { code: "63985", caption: "Poste soudure 02 163" },
+      { code: "63986", caption: "Pompe Stork CN 80" },
+      { code: "63987", caption: "Pompe Stork CN 50" },
+      { code: "63993", caption: "GRUE A TOUR LIEBHERR N°1 (2015)" },
+      { code: "63994", caption: "POMPE UHP N°2" },
+      { code: "63995", caption: "POMPE UHP N°3" },
+      { code: "64005", caption: "STABILISATEUR DE TENSION 20KVA" },
+      { code: "64006", caption: "PALAN MANUEL 3T LEVVEE 3M" },
+      { code: "64007", caption: "MACHINE A GUEULE DE LOUP - Tuyauterie" },
+      { code: "64008", caption: "GROUPE ELECTROGENE N°1 - DOCK 11000T" },
+      { code: "64009", caption: "GROUPE ELECTROGENE N°2 - DOCK 11000T" },
+      { code: "64010", caption: "GRUE BABORD DOCK 11000T" },
+      { code: "64011", caption: "GRUE TRIBORD DOCK 11000T" },
+      { code: "64014", caption: "Poste soudure Lincoln 1970 435 925" },
+      { code: "64022", caption: "GROUPE ELECTROGENE CAT 300KVA (DAC 40853)" },
+      { code: "64025", caption: "Banc de contrôle des injecteurs HUNGER" },
+      { code: "64026", caption: "Endoscope Endoscam BQ AGMTEC" },
+      { code: "64028", caption: "Perceuse 13 mm" },
+      { code: "64029", caption: "Outillage Réfrigération" },
+      { code: "64030", caption: "Flexible Réfrigération" },
+      { code: "64031", caption: "PALAN A CHAINE 4M 3200 KG" },
+      { code: "64034", caption: "Machine à fileter" },
+      { code: "64039", caption: "ENSEMBLE SYSTEME DE SECURITE" },
+      { code: "64047", caption: "Palan à chaîne 3m 1500 kg" },
+      { code: "64111", caption: "Groupe Electrogène RENAULT" },
+      { code: "64120", caption: "Machine à fileter VIRAX 1630" },
+      { code: "64154", caption: "Appareil de lignage laser" },
+      { code: "64203", caption: "Pompe Graco" },
+      { code: "64206", caption: "VERIN CREUX SIMPLE EFFET 120T - 2016" },
+      { code: "64207", caption: "VERIN CREUX SIMPLE EFFET 61T" },
+      { code: "64208", caption: "ARMOIRE DE COUPLAGE DOCK 10 800 T" },
+      { code: "64519", caption: "Poste cyplasma 40 001 471" },
+      { code: "64528", caption: "Palan Treuil 10 tonnes" },
+      { code: "64530", caption: "Aléseuse portative ELSA Supercombinata SC2 60/1" },
+      { code: "64613", caption: "Sableuse Complete Nob 200" },
+      { code: "64614", caption: "Sableuse Complete Nob 200" },
+      { code: "64902", caption: "Nettoyeur Karcher" },
+      { code: "64903", caption: "Nettoyeur KARCHER - Atelier MAINTENANCE" },
+      { code: "64905", caption: "Nettoyeur KARCHER - Atelier Nettoyage Industriel" },
+      { code: "64918", caption: "CRIC HYDRAULIQUE" },
+      { code: "64920", caption: "PINCE A SOUDER CZ 92 CMU 2000KG" },
+      { code: "64928", caption: "Groupe électrogène Cummins 300 kva" },
+      { code: "64929", caption: "Perceuse électrique à support" },
+      { code: "64934", caption: "REGULATEUR ELECTRODYNAMIQUE DE TENSION" },
+      { code: "64935", caption: "Pompe Atumat mobile" },
+      { code: "64954", caption: "Pince à toles" },
+      { code: "64957", caption: "Petite Rouleuse croqueuse" },
+      { code: "64961", caption: "Perçeuse radiale GSP 407 2663" },
+      { code: "64990", caption: "Pompe Atumat" },
+      { code: "64994", caption: "Compresseur d'air Sirius" },
+      { code: "64995", caption: "Centrale d'air" },
+      { code: "65028", caption: "Remorque longue (Manutention)" },
+      { code: "65066", caption: "Remorque" },
+      { code: "65118", caption: "Remorque" },
+      { code: "65160", caption: "Tracteur International type 384" },
+      { code: "65195", caption: "Grue Coles" },
+      { code: "65203", caption: "Tracteur 9481 AY 01" },
+      { code: "65204", caption: "Remorque Protiss" },
+      { code: "65242", caption: "Fourchette Cat. V 80 D" },
+      { code: "65243", caption: "Fourchette Cat. V 80 E" },
+      { code: "65272", caption: "Camion Mitshubishi 1553 CB 01" },
+      { code: "65277", caption: "Tracteur Godet" },
+      { code: "65282", caption: "Fourchette Hyster" },
+      { code: "65286", caption: "Fourchette Caterpillar" },
+      { code: "65288", caption: "Fourchette Hyster 8269 CV 01" },
+      { code: "65297", caption: "Camionnette KIA 6880 CG 01" },
+      { code: "65307", caption: "Pick Up Mazda 1820 CP 01" },
+      { code: "65311", caption: "Pick Up Mazda 4557 CS 01" },
+      { code: "65314", caption: "Isuzu 9 tonnes" },
+      { code: "65328", caption: "CITROEN C4 AIRCROSS - 3158 JE 01 - Anatole K" },
+      { code: "65329", caption: "CITROEN C4 AIRCROSS - 4517 JE 01 - Séraphin O" },
+      { code: "65349", caption: "Dacia Logan 140 FA 01 (2009/ Y.Perret)" },
+      { code: "65350", caption: "Dacia Logan 141 FA 01 (2009 /Ronan LEBAIL)" },
+      { code: "65351", caption: "MITSUBISHI PAJERO 131 FB 01" },
+      { code: "65360", caption: "DACIA LODGY 1.6L 5148 GE 01 (V. MATHIEU)" },
+      { code: "65361", caption: "VOITURETTE ELECTRIQUE N°1" },
+      { code: "65362", caption: "VOITURETTE ELECTRIQUE N°2" },
+      { code: "65364", caption: "MAZDA BT 50 - 2016 (Dir.Tech)" },
+      { code: "65365", caption: "RENAULT LOGAN 1.2L 7586 HA 01 (AGT SURETE) - 2016" },
+      { code: "65366", caption: "Mitsubishi L200 184 HK 01- Manutention 2016" },
+      { code: "65367", caption: "MITSUBISHI L200 936 HL 01 - ADMINISTRATION" },
+      { code: "65368", caption: "RENAULT DUSTER 5981 HP 01 - Yann PERRET" },
+      { code: "65371", caption: "HYUNDAI SANTA FE (DRH) - 2018" },
+      { code: "65372", caption: "KIA SORENTO 2019 - DAF" },
+      { code: "65373", caption: "DUSTER WWW6588CI01 DAC44436( LEBORGNE)" },
+      { code: "65374", caption: "DUSTER WWW6589CI01 DAC44580 (PLUCINSKI)" },
+      { code: "65375", caption: "DUSTER WWW6629CI01 DAC44587 (LAMAISON)" },
+      { code: "65501", caption: "Grue à tour BPR n° 5 type GT 229 B" },
+      { code: "65502", caption: "Grue à tour Richier n° 4 GT 1295" },
+      { code: "65504", caption: "Fourchette Cat. DP 115" },
+      { code: "65505", caption: "Grue Pinguely (60 t)" },
+      { code: "65506", caption: "GRUE FLOTTANTE PIC-BOEUF" },
+      { code: "65507", caption: "GRUE A TOUR N°5 TEREX" },
+      { code: "65508", caption: "GRUE A TOUR N°2 TEREX" },
+      { code: "65509", caption: "GRUE A TOUR N°4 TEREX (DAC 45659)" },
+      { code: "65512", caption: "NACELLE HAULOTTE N°4 HA18PX (Peinture)" },
+      { code: "65513", caption: "NACELLE ARTICULEE HAULOTTE N°1" },
+      { code: "65514", caption: "CHARIOT ELEVATEUR HYSTER H7" },
+      { code: "65515", caption: "Chariot élévateur Hyster H3.0FT" },
+      { code: "65518", caption: "VOITURETTE YAMAHA G29E" },
+      { code: "65519", caption: "NACELLE HAULOTTE N°2 (2015)" },
+      { code: "65520", caption: "NACELLE HAULOTTE N°3 (2015)" },
+      { code: "65521", caption: "PEUGEOT 2008 4x2 (2015 - F. BLEDOU)" },
+      { code: "65523", caption: "CHARIOT ELEVATEUR 5 TONNES H5.0FT - 4000 MM (2015)" },
+      { code: "65524", caption: "CHARIOT ELEVATEUR 5 TONNES H5.0FT - 6000 MM (2015)" },
+      { code: "65525", caption: "CHARIOT ELEVATEUR HYSTER H3 FORTENS" },
+      { code: "65526", caption: "CHARIOT ELEVATEUR HYSTER H7.0FT de 7 tonnes" },
+      { code: "66002", caption: "ENTRETIEN PALANS - Chaudronnerie" },
+      { code: "66521", caption: "Homologation soudeurs" },
+      { code: "66522", caption: "Homologation soudeurs" },
+      { code: "66801", caption: "Petit matériel électrique Chaudronnerie" },
+      { code: "66802", caption: "Petit matériel électrique Tuyauterie" },
+      { code: "66803", caption: "Petit matériel électrique Electricité" },
+      { code: "66805", caption: "Petits matériels électriques - Peinture anticorrosion" },
+      { code: "66806", caption: "Petit matériel électrique Machine-Outils" },
+      { code: "66810", caption: "Petit matériel électrique - Nettoyage Industriel" },
+      { code: "66817", caption: "Palans" },
+      { code: "66818", caption: "OUTILLAGE VANNES" },
+      { code: "66819", caption: "Petit matériel et outillage - Nettoyage industriel" },
+      { code: "66821", caption: "Petit matériel et outillage Chaudronnerie" },
+      { code: "66822", caption: "Petit matériel et outillage Tuyauterie" },
+      { code: "66823", caption: "Petit matériel et outillage Electricité" },
+      { code: "66824", caption: "Petit matériel et outillage Menuiserie" },
+      { code: "66826", caption: "Petit matériel et outillage Machine-Outils" },
+      { code: "66827", caption: "Petit matériel et outillage Mécanique Bord" },
+      { code: "66828", caption: "Petit matériel et outillage Manutention" },
+      { code: "66829", caption: "Petit matériel et outillage Peinture" },
+      { code: "66831", caption: "Chariots oxygène-acétylène" },
+      { code: "66834", caption: "Petit matériel et outillage - Maintenance" },
+      { code: "66858", caption: "Matériel & mobilier de bureau Net. Industriel" },
+      { code: "66859", caption: "Matériel & mobilier de bureau Peinture" },
+      { code: "66861", caption: "Matériel & mobilier de bureau Chaudronnerie" },
+      { code: "66862", caption: "Matériel & mobilier de bureau Tuyauterie" },
+      { code: "66863", caption: "Matériel & mobilier de bureau Electricité" },
+      { code: "66864", caption: "Matériel & mobilier de bureau Menuiserie" },
+      { code: "66865", caption: "Matériel & mobilier de bureau Direction Production" },
+      { code: "66867", caption: "Matériel & mobilier de bureau Mécanique Bord" },
+      { code: "66868", caption: "Matériel & mobilier de bureau Manutention" },
+      { code: "66880", caption: "SYSTEME QUALITE - HYGIENE - SECURITE - ENVIRONNEMENT" },
+      { code: "66892", caption: "Entretiens divers & Nettoyage Chantier" },
+      { code: "66910", caption: "CITERNES 1 A 6 & ENLEVEMENT RESIDUS" },
+      { code: "66912", caption: "TABLEAU MOBILE" },
+      { code: "67016", caption: "Plate 100 tonnes 8 X 5" },
+      { code: "67017", caption: "4e Dock flottant 10 800 tonnes" },
+      { code: "67023", caption: "Plate d'écartement du 10 000 tonnes" },
+      { code: "67024", caption: "Dock flottant 2 000 tonnes" },
+      { code: "67030", caption: "Catamaran hydrocarbure" },
+      { code: "67032", caption: "Remorqueur Mossi" },
+      { code: "67035", caption: "Vedette Guere" },
+      { code: "67037", caption: "Plate de servitude (20 x 10)" },
+      { code: "67038", caption: "PONTONS INCENDIE - HSE" },
+      { code: "67040", caption: "Dock flottant 10 000 tonnes" },
+      { code: "67042", caption: "Ponton et grue flottante Antoinette 22 X 16" },
+      { code: "67044", caption: "Plate flottante 8m x 5m x 1,25m (2019)" },
+      { code: "67047", caption: "Vedette Samba" },
+      { code: "67048", caption: "Vedette Gbele" },
+      { code: "67049", caption: "SKIFF OKOU" },
+      { code: "67061", caption: "Plate de 140 tonnes n° 1 20 X 8" },
+      { code: "67062", caption: "Plate de 140 tonnes n° 2 20 X 8" },
+      { code: "67066", caption: "Plate 700 tonnes 32 X 10" },
+      { code: "67068", caption: "Remorqueur Ebra" },
+      { code: "67072", caption: "Remorqueur Abroka" },
+      { code: "67075", caption: "Chariot skiff" },
+      { code: "69005", caption: "FRAIS FORMATION" },
+      { code: "69009", caption: "PROJET POINTAGE ELECTRONIQUE" },
+      { code: "77043", caption: "TRAVAUX AMENAGEMENT CABINE DE SABLAGE - 2016" },
+      { code: "77056", caption: "CONSTRUCTION HANGAR UHP - THP" },
+      { code: "77060", caption: "TRAVAUX RENOVATION QUAIS" },
+      { code: "77069", caption: "ENTRETIEN TRANSFORMATEURS & REMPLACEMENT 8 CELLULES ELECTRIQUE" },
+      { code: "77076", caption: "TRAVAUX DOCK 10 000T - EX 2022 (DAC44998)" },
+      { code: "77077", caption: "ETUDE DE STABILITE DOCK CARENA" },
+      { code: "77080", caption: "TRAVAUX DE DRAGAGE DE LA FOSSE DU DOCK 2000T (DAC 46079)" },
+      { code: "83022", caption: "CONSO. GROUPE ELECTROGENE CAT (DAC 40853)" },
+      { code: "83075", caption: "CONSO. CHAUFFE EAU POUR POMPE- Nettoyage Industriel" },
+      { code: "83077", caption: "Consommation groupe electrogene Dorman" },
+      { code: "83101", caption: "CONSO.KARCHER HDS 10/20-4 M 200B 380V (MECA BORD)" },
+      { code: "83227", caption: "Conso. POMPE A INCENDIE HAKA (DAC N°28883)" },
+      { code: "83236", caption: "Conso. POSTE A SOUDER BIG RED 500 - 2017" },
+      { code: "83597", caption: "Consom. four à sable" },
+      { code: "83635", caption: "Conso POMPE UHP N°4" },
+      { code: "83636", caption: "Conso POMPE UHP N°5" },
+      { code: "83680", caption: "Consom. Groupe Hobart n°3" },
+      { code: "83725", caption: "Consom. groupe électrogène Caterpillar" },
+      { code: "83726", caption: "Consom. groupe électrogène Caterpillar" },
+      { code: "83727", caption: "Conso G.E CATERPILLAR 300 KVA DOCK 10 000 T" },
+      { code: "83764", caption: "Consom. groupe SMB mobile 220 v. 300KVA" },
+      { code: "83770", caption: "Consom. groupe électrogène (ex-informatique)" },
+      { code: "83794", caption: "Conso. Groupe motopompe Richier P 200" },
+      { code: "83795", caption: "Consom. four à sable n° 1" },
+      { code: "83796", caption: "Consom. four à sable n° 2" },
+      { code: "83812", caption: "Conso. POMPE UHP N°1" },
+      { code: "83834", caption: "Conso. Compresseur Ingersoll Rand" },
+      { code: "83838", caption: "Consom. Compress. Atlas Copco" },
+      { code: "83915", caption: "CONSO GRPE ELECTROGENE CATERP 3406" },
+      { code: "83936", caption: "Conso groupe soudure lincoln E500" },
+      { code: "83941", caption: "Conso groupe électrogène CUMMINS 510 kva" },
+      { code: "83964", caption: "Cons groupe electrogène Mobile" },
+      { code: "83981", caption: "Conso. Poste soudure autonome Genset" },
+      { code: "83994", caption: "Conso. POMPE UHP N°2" },
+      { code: "83995", caption: "Conso. POMPE UHP N°3" },
+      { code: "84111", caption: "Conso. Groupe électrogène RENAULT" },
+      { code: "84903", caption: "Conso. Nettoyeur KARCHER - Atelier MAINTENANCE" },
+      { code: "84905", caption: "Conso. Nettoyeur KARCHER - Atelier Nettoyage Industriel" },
+      { code: "85160", caption: "Consom. tracteur International type 384" },
+      { code: "85190", caption: "Consom. grue Pinguely (100 t)" },
+      { code: "85195", caption: "Consom. grue Coles" },
+      { code: "85203", caption: "Consom. tracteur 9481 AY 01" },
+      { code: "85277", caption: "Consom. tracteur Godet" },
+      { code: "85282", caption: "Consom. fourchette Hyster" },
+      { code: "85307", caption: "Consom. pick up Mazda 1820 CP 01" },
+      { code: "85311", caption: "Consom. pick up Mazda 4557 CS 01" },
+      { code: "85314", caption: "Consom. Isuzu 9 tonnes" },
+      { code: "85318", caption: "Consom. Peugeot Partner 5872 CY 01" },
+      { code: "85328", caption: "Conso CITROEN C4 AIRCROSS - Anatole K" },
+      { code: "85329", caption: "Conso CITROEN C4 AIRCROSS - Séraphin O" },
+      { code: "85349", caption: "Dacia Logan 140 FA 01 (2009/ Y.Perret)" },
+      { code: "85350", caption: "Dacia Logan 141 FA 01 (2009 /Ronan LEBAIL)" },
+      { code: "85351", caption: "Consommation Mitsubishi pajero 131 FB 01" },
+      { code: "85360", caption: "Conso DACIA LODGY 1.6 L (V. MATHIEU)" },
+      { code: "85364", caption: "Conso. MAZDA BT 50 - 2016 (Dir.Tech)" },
+      { code: "85365", caption: "Consom. RENAULT LOGAN 1.2L (AGT SURETE) - 2016" },
+      { code: "85366", caption: "Conso Pick-up Mitsubishi L200 - Manutention 2016" },
+      { code: "85367", caption: "Conso MITSUBISHI L200 936 HL 01 - ADMINISTRATION" },
+      { code: "85368", caption: "Conso. RENAULT DUSTER 3388WW01 - Yann PERRET" },
+      { code: "85369", caption: "Conso. RENAULT DOKKER VAN 1.5 L - 8841WW01 (Supply Chain)" },
+      { code: "85375", caption: "CONSO DUSTER WWW6629CI01 DAC44587 (LAMAISON)" },
+      { code: "85503", caption: "Consom. grue mobile" },
+      { code: "85504", caption: "Consom. fourchette Cat." },
+      { code: "85506", caption: "Conso. GRUE FLOTTANTE PIC-BOEUF" },
+      { code: "85507", caption: "Conso. GRUE A TOUR N°5 TEREX" },
+      { code: "85512", caption: "Conso NACELLE HAULOTTE N°4 HA18PX (Peinture)" },
+      { code: "85513", caption: "CONSO NACELLE ARTICULEE HAULOTTE N°1" },
+      { code: "85514", caption: "Conso CHARIOT ELEVATEUR HYSTER H7" },
+      { code: "85515", caption: "Conso. Chariot élévateur Hyster H3.0FT" },
+      { code: "85517", caption: "Conso MITSUBISHI PICK UP - 5984 GP 01 (Administration)" },
+      { code: "85519", caption: "Conso NACELLE HAULOTTE N°2 (2015)" },
+      { code: "85520", caption: "Conso NACELLE HAULOTTE N°3 (2015)" },
+      { code: "85521", caption: "Conso PEUGEOT 2008 4x2 (2015 - F. BLEDOU)" },
+      { code: "85522", caption: "Conso MITSUBISHI L200 184 GV 01 (2015 - MAGASIN)" },
+      { code: "85523", caption: "Conso. CHARIOT ELEVATEUR 5 TONNES H5.0FT - 4000 MM (2015)" },
+      { code: "85524", caption: "Conso. CHARIOT ELEVATEUR 5 TONNES H5.0FT - 6000 MM (2015)" },
+      { code: "85525", caption: "CONSO CHARIOT ELEVATEUR HYSTER H3 FORTENS" },
+      { code: "85526", caption: "CONSO. CHARIOT ELEVATEUR HYSTER H7.0FT de 7 tonnes" },
+      { code: "87000", caption: "Consom. compresseur Bauer plongeurs" },
+      { code: "87017", caption: "Conso. 4e Dock flottant 10 800 tonnes" },
+      { code: "87024", caption: "Consom. dock flottant 2 000 tonnes" },
+      { code: "87032", caption: "Consom. remorqueur Mossi" },
+      { code: "87035", caption: "Consom. vedette Guere" },
+      { code: "87038", caption: "Conso. PONTONS INCENDIE - HSE" },
+      { code: "87040", caption: "Consom. dock 10 000 tonnes" },
+      { code: "87042", caption: "Consom. ponton et grue flottante" },
+      { code: "87047", caption: "Consom. vedette Samba" },
+      { code: "87048", caption: "Consom. vedette Gbele" },
+      { code: "87068", caption: "Conso. Remorqueur Ebra" },
+      { code: "87072", caption: "Consom. remorqueur Abroka" }
+    ];
+
+    function normalizeStr(str) {
+      return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    }
+
     const searchInput = document.getElementById('searchInput');
-    if (searchInput) searchInput.addEventListener('input', appliquerFiltres);
+    const resultsList = document.getElementById('resultsList');
+    const resultCount = document.getElementById('resultCount');
 
-    const dateDebutFilter = document.getElementById('dateDebutFilter');
-    if (dateDebutFilter) dateDebutFilter.addEventListener('change', appliquerFiltres);
+    function displayResults(query = "") {
+      const cleanQuery = normalizeStr(query.trim());
+      resultsList.innerHTML = "";
 
-    const dateFinFilter = document.getElementById('dateFinFilter');
-    if (dateFinFilter) dateFinFilter.addEventListener('change', appliquerFiltres);
-
-    const btnPdf = document.getElementById('btnExportPdf');
-    if (btnPdf) btnPdf.addEventListener('click', exporterPDF);
-
-    // Gestion photo & caméra
-    const btnOuvrirCamera = document.getElementById('btnOuvrirCamera');
-    const photoInput = document.getElementById('photoInput');
-    const btnSupprimerPhoto = document.getElementById('btnSupprimerPhoto');
-    const aperçuContainer = document.getElementById('aperçuContainer');
-    const imgApercu = document.getElementById('imgApercu');
-    const nomFichierInfo = document.getElementById('nomFichierInfo');
-
-    if (btnOuvrirCamera && photoInput) {
-        btnOuvrirCamera.addEventListener('click', () => {
-            photoInput.click();
-        });
-
-        photoInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                nomFichierInfo.textContent = file.name;
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    imgApercu.src = event.target.result;
-                    aperçuContainer.style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-            } else {
-                reinitialiserPhotoUI();
-            }
-        });
-    }
-
-    if (btnSupprimerPhoto) {
-        btnSupprimerPhoto.addEventListener('click', () => {
-            reinitialiserPhotoUI();
-        });
-    }
-});
-
-// ==========================================
-// SYSTÈME DE RECHERCHE INTELLIGENTE (Équipements)
-// ==========================================
-function initialiserRechercheEquipements() {
-    const inputSearch = document.getElementById('equipementSearchInput');
-    const inputHidden = document.getElementById('equipementSelect');
-    const suggestionsDiv = document.getElementById('suggestionsList');
-
-    if (!inputSearch) return;
-
-    inputSearch.addEventListener('input', function() {
-        const terme = this.value.toLowerCase().trim();
-        suggestionsDiv.innerHTML = '';
+      const filtered = items.filter(item => {
+        const cleanCode = normalizeStr(item.code);
+        const cleanCaption = normalizeStr(item.caption);
         
-        if (terme.length === 0) {
-            suggestionsDiv.style.display = 'none';
-            inputHidden.value = '';
-            return;
-        }
+        const queryWords = cleanQuery.split(/\s+/);
+        return queryWords.every(word => cleanCode.includes(word) || cleanCaption.includes(word));
+      });
 
-        const matches = equipementsList.filter(eq => eq.nom.toLowerCase().includes(terme));
+      resultCount.textContent = `${filtered.length} résultat(s) trouvé(s)`;
 
-        if (matches.length > 0) {
-            suggestionsDiv.style.display = 'block';
-            matches.forEach(eq => {
-                const div = document.createElement('div');
-                div.textContent = eq.nom;
-                
-                div.addEventListener('click', () => {
-                    inputSearch.value = eq.nom;
-                    inputHidden.value = eq.nom;
-                    suggestionsDiv.style.display = 'none';
-                });
-                
-                suggestionsDiv.appendChild(div);
-            });
-        } else {
-            suggestionsDiv.style.display = 'none';
-        }
-    });
-
-    document.addEventListener('click', (e) => {
-        if (!inputSearch.contains(e.target) && !suggestionsDiv.contains(e.target)) {
-            suggestionsDiv.style.display = 'none';
-        }
-    });
-}
-
-function reinitialiserPhotoUI() {
-    const photoInput = document.getElementById('photoInput');
-    const aperçuContainer = document.getElementById('aperçuContainer');
-    const imgApercu = document.getElementById('imgApercu');
-    const nomFichierInfo = document.getElementById('nomFichierInfo');
-
-    if (photoInput) photoInput.value = '';
-    if (imgApercu) imgApercu.src = '';
-    if (aperçuContainer) aperçuContainer.style.display = 'none';
-    if (nomFichierInfo) nomFichierInfo.textContent = 'Aucune photo sélectionnée';
-}
-
-function switchChartView(view) {
-    const btnWeekly = document.getElementById('btnWeekly');
-    const btnYearly = document.getElementById('btnYearly');
-    const weeklyContainer = document.getElementById('weeklyContainer');
-    const yearlyContainer = document.getElementById('yearlyContainer');
-
-    if (view === 'weekly') {
-        btnWeekly.classList.add('active-view');
-        btnYearly.classList.remove('active-view');
-        weeklyContainer.style.display = 'block';
-        yearlyContainer.style.display = 'none';
-    } else {
-        btnYearly.classList.add('active-view');
-        btnWeekly.classList.remove('active-view');
-        yearlyContainer.style.display = 'block';
-        weeklyContainer.style.display = 'none';
-    }
-}
-
-function afficherNotification(message, type = 'succes') {
-    const notif = document.getElementById('notification');
-    if (!notif) return;
-    
-    notif.textContent = message;
-    notif.style.display = 'block';
-    
-    if (type === 'succes') {
-        notif.style.backgroundColor = '#d1e7dd';
-        notif.style.color = '#0f5132';
-        notif.style.border = '1px solid #badbcc';
-    } else {
-        notif.style.backgroundColor = '#f8d7da';
-        notif.style.color = '#842029';
-        notif.style.border = '1px solid #f5c2c7';
-    }
-
-    setTimeout(() => { notif.style.display = 'none'; }, 5000);
-}
-
-async function enregistrerIntervention(e) {
-    e.preventDefault();
-    if (!_supabase) {
-        afficherNotification("Erreur : Base de données non connectée.", "erreur");
+      if (filtered.length === 0) {
+        resultsList.innerHTML = `<div class="no-result">Aucun résultat trouvé pour "${query}"</div>`;
         return;
-    }
+      }
 
-    const equipementVal = document.getElementById('equipementSelect').value;
-    const dateVal = document.getElementById('dateIntervention').value;
-    const heureDebutVal = document.getElementById('heureDebut').value;
-    const heureFinVal = document.getElementById('heureFin').value;
-    const panneVal = document.getElementById('panneResolue').value;
-    const prestataireVal = document.getElementById('prestataire').value;
-    const photoInput = document.getElementById('photoInput');
+      filtered.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'card';
 
-    if (!equipementVal) {
-        afficherNotification('Veuillez sélectionner un équipement valide dans la liste de recherche.', 'erreur');
-        return;
-    }
-
-    let photoUrlVal = '';
-    if (photoInput && photoInput.files && photoInput.files[0]) {
-        const file = photoInput.files[0];
-        try {
-            photoUrlVal = await compresserImageEnBase64(file, 800, 0.7);
-        } catch (err) {
-            photoUrlVal = await convertirFichierEnBase64(file);
-        }
-    }
-
-    const interventionData = {
-        equipment: equipementVal,
-        date_intervention: dateVal,
-        heure_debut: heureDebutVal || null,
-        heure_fin: heureFinVal || null,
-        panne_travail: panneVal || '',
-        prestataire: prestataireVal || '',
-        photo_url: photoUrlVal || ''
-    };
-
-    try {
-        const { error } = await _supabase.from('interventions_maintenance').insert([interventionData]);
-        if (error) throw new Error(error.message);
-
-        afficherNotification('✅ Intervention enregistrée avec succès !');
-        document.getElementById('interventionForm').reset();
-        document.getElementById('equipementSearchInput').value = '';
-        document.getElementById('equipementSelect').value = '';
-        document.getElementById('dateIntervention').value = new Date().toISOString().split('T')[0];
-        reinitialiserPhotoUI();
-        chargerHistorique();
-    } catch (error) {
-        afficherNotification('Erreur Supabase : ' + error.message, 'erreur');
-    }
-}
-
-function compresserImageEnBase64(file, maxWidth = 800, quality = 0.7) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = event => {
-            const img = new Image();
-            img.src = event.target.result;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                let width = img.width;
-                let height = img.height;
-                if (width > maxWidth) {
-                    height = Math.round((height * maxWidth) / width);
-                    width = maxWidth;
-                }
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-                resolve(canvas.toDataURL('image/jpeg', quality));
-            };
-            img.onerror = error => reject(error);
-        };
-        reader.onerror = error => reject(error);
-    });
-}
-
-function convertirFichierEnBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
-    });
-}
-
-async function chargerHistorique() {
-    const tbody = document.querySelector('#historiqueTable tbody');
-    if (!tbody) return;
-
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#777;">Chargement de l\'historique...</td></tr>';
-    if (!_supabase) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:red;">Erreur : Connexion Supabase absente.</td></tr>';
-        return;
-    }
-
-    try {
-        const { data, error } = await _supabase
-            .from('interventions_maintenance')
-            .select('*')
-            .order('date_intervention', { ascending: false });
-
-        if (error) throw error;
-        historiqueGlobal = data || [];
-        appliquerFiltres();
-    } catch (error) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:red;">Erreur : ${error.message}</td></tr>`;
-    }
-}
-
-function appliquerFiltres() {
-    const termeRecherche = document.getElementById('searchInput') ? document.getElementById('searchInput').value.toLowerCase().trim() : '';
-    const dateDebut = document.getElementById('dateDebutFilter') ? document.getElementById('dateDebutFilter').value : '';
-    const dateFin = document.getElementById('dateFinFilter') ? document.getElementById('dateFinFilter').value : '';
-
-    historiqueFiltre = historiqueGlobal.filter(item => {
-        const eq = (item.equipment || item.equipement || '').toLowerCase();
-        const panne = (item.panne_travail || '').toLowerCase();
-        const prestataire = (item.prestataire || '').toLowerCase();
-        const dateIntervention = item.date_intervention || '';
-
-        const matchTexte = !termeRecherche || 
-            eq.includes(termeRecherche) ||
-            panne.includes(termeRecherche) ||
-            prestataire.includes(termeRecherche) ||
-            dateIntervention.toLowerCase().includes(termeRecherche);
-
-        let matchDate = true;
-        if (dateDebut && dateIntervention < dateDebut) matchDate = false;
-        if (dateFin && dateIntervention > dateFin) matchDate = false;
-
-        return matchTexte && matchDate;
-    });
-
-    afficherTableau(historiqueFiltre);
-    mettreAJourGraphiques(historiqueFiltre);
-}
-
-function afficherTableau(donnees) {
-    const tbody = document.querySelector('#historiqueTable tbody');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-
-    if (donnees.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#777;">Aucune intervention trouvée pour ces critères.</td></tr>';
-        return;
-    }
-
-    donnees.forEach(item => {
-        const nomEquipement = item.equipment || item.equipement || '';
-        let photoHtml = '<span style="color: #94a3b8; font-size: 0.85rem;">Aucune</span>';
-        if (item.photo_url) {
-            photoHtml = `<a href="${item.photo_url}" target="_blank"><img src="${item.photo_url}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;" title="Voir la photo"></a>`;
+        let captionHTML = item.caption;
+        if (cleanQuery !== "") {
+          const regex = new RegExp(`(${cleanQuery.split(/\s+/).join('|')})`, 'gi');
+          captionHTML = item.caption.replace(regex, '<span class="highlight">$1</span>');
         }
 
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><strong>${nomEquipement}</strong></td>
-            <td>${item.date_intervention || ''}</td>
-            <td>${item.heure_debut || '--:--'} - ${item.heure_fin || '--:--'}</td>
-            <td>${item.panne_travail || ''}</td>
-            <td><em>${item.prestataire || ''}</em></td>
-            <td style="text-align: center;">${photoHtml}</td>
-            <td style="text-align: center; white-space: nowrap;">
-                <button onclick="supprimerIntervention('${item.id}')" style="background-color: #dc2626; padding: 6px 12px; font-size: 0.85rem; width: auto; display: inline-block; cursor: pointer;" title="Supprimer">🗑️ Suppr.</button>
-            </td>
+        card.innerHTML = `
+          <div class="card-caption">${captionHTML}</div>
+          <div class="card-code">${item.code}</div>
         `;
-        tbody.appendChild(tr);
-    });
-}
-
-async function supprimerIntervention(id) {
-    if (!confirm('Voulez-vous vraiment supprimer cette intervention ?')) return;
-
-    try {
-        const { error } = await _supabase.from('interventions_maintenance').delete().eq('id', id);
-        if (error) throw error;
-        afficherNotification('🗑️ Intervention supprimée avec succès !');
-        chargerHistorique();
-    } catch (error) {
-        afficherNotification('Erreur lors de la suppression : ' + error.message, 'erreur');
-    }
-}
-
-// ==========================================
-// GESTION DES GRAPHIQUES
-// ==========================================
-function mettreAJourGraphiques(dataList) {
-    if (typeof Chart === 'undefined') return;
-    mettreAJourGraphiqueHebdomadaire(dataList);
-    mettreAJourGraphiqueAnnuel(dataList);
-}
-
-function mettreAJourGraphiqueHebdomadaire(dataList) {
-    const weeklyData = {};
-    dataList.forEach(item => {
-        if (!item.date_intervention) return;
-        const date = new Date(item.date_intervention);
-        const year = date.getFullYear();
-        const weekNum = getWeekNumber(date);
-        const key = `${year}-S${String(weekNum).padStart(2, '0')}`;
-        weeklyData[key] = (weeklyData[key] || 0) + 1;
-    });
-
-    const sortedKeys = Object.keys(weeklyData).sort();
-    const labels = sortedKeys;
-    const values = sortedKeys.map(key => weeklyData[key]);
-    const maxVal = Math.max(...values, 0);
-
-    const ctx = document.getElementById('weeklyChart').getContext('2d');
-    if (weeklyChartInstance) weeklyChartInstance.destroy();
-
-    weeklyChartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Interventions par Semaine',
-                data: values,
-                borderColor: '#003366',
-                backgroundColor: 'rgba(0, 51, 102, 0.1)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.3,
-                pointBackgroundColor: values.map(v => v === maxVal && maxVal > 0 ? '#ef4444' : '#003366'),
-                pointBorderColor: values.map(v => v === maxVal && maxVal > 0 ? '#b91c1c' : '#003366'),
-                pointRadius: values.map(v => v === maxVal && maxVal > 0 ? 6 : 3)
-            }]
-        },
-        options: { 
-            responsive: true, 
-            maintainAspectRatio: false,
-            scales: {
-                y: { beginAtZero: true, ticks: { stepSize: 1 } }
-            }
-        }
-    });
-}
-
-function mettreAJourGraphiqueAnnuel(dataList) {
-    const moisNoms = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
-    const anneeCourante = new Date().getFullYear();
-    const totauxMensuels = new Array(12).fill(0);
-
-    dataList.forEach(item => {
-        if (!item.date_intervention) return;
-        const date = new Date(item.date_intervention);
-        if (date.getFullYear() === anneeCourante) {
-            const indexMois = date.getMonth();
-            totauxMensuels[indexMois]++;
-        }
-    });
-
-    const maxVal = Math.max(...totauxMensuels, 0);
-
-    const ctx = document.getElementById('yearlyChart').getContext('2d');
-    if (yearlyChartInstance) yearlyChartInstance.destroy();
-
-    yearlyChartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: moisNoms,
-            datasets: [{
-                label: `Évolution ${anneeCourante} (Par Mois)`,
-                data: totauxMensuels,
-                borderColor: '#0055a5',
-                backgroundColor: 'rgba(0, 85, 165, 0.1)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.3,
-                pointBackgroundColor: totauxMensuels.map(v => v === maxVal && maxVal > 0 ? '#ef4444' : '#0055a5'),
-                pointBorderColor: totauxMensuels.map(v => v === maxVal && maxVal > 0 ? '#b91c1c' : '#0055a5'),
-                pointRadius: totauxMensuels.map(v => v === maxVal && maxVal > 0 ? 6 : 3)
-            }]
-        },
-        options: { 
-            responsive: true, 
-            maintainAspectRatio: false,
-            scales: {
-                y: { beginAtZero: true, ticks: { stepSize: 1 } }
-            }
-        }
-    });
-}
-
-function getWeekNumber(d) {
-    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-}
-
-// ==========================================
-// EXPORTATION PDF
-// ==========================================
-function exporterPDF() {
-    const { jsPDF } = window.jspdf || {};
-    if (!jsPDF) {
-        afficherNotification("La bibliothèque d'export PDF n'est pas chargée.", "erreur");
-        return;
+        resultsList.appendChild(card);
+      });
     }
 
-    if (!historiqueFiltre || historiqueFiltre.length === 0) {
-        afficherNotification("Aucune donnée à exporter dans le filtre actuel.", "erreur");
-        return;
-    }
-
-    const doc = new jsPDF();
-    doc.setFontSize(16);
-    doc.setTextColor(0, 51, 102);
-    doc.text("Rapport d'Interventions - CARENA", 14, 15);
-
-    doc.setFontSize(10);
-    doc.setTextColor(100, 116, 139);
-    doc.text(`Généré le : ${new Date().toLocaleDateString()} | Total éléments : ${historiqueFiltre.length}`, 14, 22);
-
-    const tableRows = historiqueFiltre.map(item => [
-        item.equipment || item.equipement || '',
-        item.date_intervention || '',
-        `${item.heure_debut || '--:--'} - ${item.heure_fin || '--:--'}`,
-        item.panne_travail || '',
-        item.prestataire || ''
-    ]);
-
-    doc.autoTable({
-        startY: 28,
-        head: [['Équipement', 'Date', 'Horaires', 'Travail / Panne', 'Prestataire']],
-        body: tableRows,
-        theme: 'grid',
-        headStyles: { fillColor: [0, 51, 102] },
-        styles: { fontSize: 8, cellPadding: 4 },
-        columnStyles: {
-            0: { cellWidth: 45 },
-            1: { cellWidth: 25 },
-            2: { cellWidth: 25 },
-            3: { cellWidth: 55 },
-            4: { cellWidth: 40 }
-        }
+    searchInput.addEventListener('input', (e) => {
+      displayResults(e.target.value);
     });
 
-    doc.save(`Rapport_Interventions_Carena_${new Date().toISOString().split('T')[0]}.pdf`);
-    afficherNotification("📄 PDF exporté avec succès !");
-}
+    displayResults();
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('Service Worker enregistré !', reg))
+          .catch(err => console.log('Erreur SW:', err));
+      });
+    }
+  </script>
+</body>
+</html>
