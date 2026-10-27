@@ -721,7 +721,12 @@
         const cleanCaption = normalizeStr(item.caption);
         
         const queryWords = cleanQuery.split(/\s+/);
-        return queryWords.every(word => cleanCode.includes(word) || cleanCaption.includes(word));
+        return queryWords.every(word => {
+          // Gère automatiquement le singulier/pluriel (ex: "caniveau" trouve "caniveaux")
+          const singularWord = word.replace(/[sx]$/, '');
+          return cleanCode.includes(word) || cleanCaption.includes(word) || 
+                 (singularWord.length > 2 && cleanCaption.includes(singularWord));
+        });
       });
 
       resultCount.textContent = `${filtered.length} résultat(s) trouvé(s)`;
